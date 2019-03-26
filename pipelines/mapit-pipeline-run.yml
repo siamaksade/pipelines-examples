@@ -1,0 +1,14 @@
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineRun
+metadata:
+  name: mapit-pipeline-1
+spec:
+  pipelineRef:
+    name: mapit-pipeline
+  trigger:
+    type: manual
+  resources:
+  - name: source-repo
+    resourceRef:
+      name: mapit-git

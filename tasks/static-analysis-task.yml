@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: static-analysis
+spec:
+  inputs:
+    resources:
+    - name: workspace-git
+      targetPath: /
+      type: git
+  steps:
+    - name: pmd
+      image: ubuntu
+      command:
+        - echo
+      args:
+        - "pmd"
+    - name: sonar
+      image: ubuntu
+      command:
+        - echo
+      args:
+        - "sonar"

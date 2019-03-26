@@ -1,0 +1,57 @@
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: mapit-git
+spec:
+  type: git
+  params:
+  - name: url
+    value: https://github.com/siamaksade/mapit-spring.git
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: mapit-pipeline
+spec:
+  resources:
+  - name: source-repo
+    type: git
+  tasks:
+  - name: build-app
+    taskRef:
+      name: mvn-build
+    resources:
+      inputs:
+      - name: workspace-git
+        resource: source-repo
+      outputs:
+      - name: workspace-git
+        resource: source-repo
+  - name: test-app
+    taskRef:
+      name: mvn-test
+    resources:
+      inputs:
+      - name: workspace-git
+        resource: source-repo
+        from: [build-app]
+  - name: analyse-code
+    taskRef:
+      name: static-analysis
+    resources:
+      inputs:
+      - name: workspace-git
+        resource: source-repo
+        from: [build-app]
+  - name: build-image
+    taskRef:
+      name: image-build
+    runAfter:
+      - test-app
+      - analyse-app
+    resources:
+      inputs:
+      - name: workspace-git
+        resource: source-repo
+        from: [build-app]

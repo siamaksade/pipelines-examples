@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: image-build
+spec:
+  inputs:
+    resources:
+    - name: workspace-git
+      targetPath: /
+      type: git
+  steps:
+    - name: prepare-image
+      image: ubuntu
+      command:
+        - echo
+      args:
+        - "prepare"
+    - name: build-image
+      image: ubuntu
+      command:
+        - echo
+      args:
+        - "build"
