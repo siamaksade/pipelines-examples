@@ -1,0 +1,193 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineRun
+metadata:
+  creationTimestamp: 2019-03-26T15:07:38Z
+  generation: 1
+  labels:
+    tekton.dev/pipeline: mapit-pipeline
+  name: mapit-pipeline-1
+  namespace: mapit
+  resourceVersion: "97821"
+  selfLink: /apis/tekton.dev/v1alpha1/namespaces/mapit/pipelineruns/mapit-pipeline-1
+  uid: e52a4bbf-4fd8-11e9-a527-08002795dff0
+spec:
+  Status: ""
+  params: null
+  pipelineRef:
+    name: mapit-pipeline
+  resources:
+  - name: source-repo
+    resourceRef:
+      name: mapit-git
+  serviceAccount: ""
+  trigger:
+    type: manual
+status:
+  conditions:
+  - lastTransitionTime: 2019-03-26T15:08:55Z
+    message: All Tasks have completed executing
+    reason: Succeeded
+    status: "True"
+    type: Succeeded
+  startTime: 2019-03-26T15:07:38Z
+  taskRuns:
+    mapit-pipeline-1-analyse-app-xbbsk:
+      pipelineTaskName: analyse-app
+      status:
+        conditions:
+        - lastTransitionTime: 2019-03-26T15:08:23Z
+          status: "True"
+          type: Succeeded
+        podName: mapit-pipeline-1-analyse-app-xbbsk-pod-cbfb04
+        startTime: 2019-03-26T15:08:10Z
+        steps:
+        - terminated:
+            containerID: docker://c53430aaebb820fd6d92177da95f3ea670acb4c7df0aff171bcf93559c4bca78
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:12Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:12Z
+        - terminated:
+            containerID: docker://b6792af62ba2a68311188eb1f093e742fef215df716ba44176c41d6311d51d5c
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:19Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:19Z
+        - terminated:
+            containerID: docker://cc2569786beaeb486a6345cf6db29a039909c1be8430c63679c0eb44b23d1569
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:21Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:21Z
+        - terminated:
+            containerID: docker://fb2586030013639465af1b915a06b6d179e22ebd15bf296b1b8c3210da35f53b
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:13Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:13Z
+        - terminated:
+            containerID: docker://3d912756c123dd106411f3ee531d2a8b0aef2dcc7535a9f4c63466ead7ec6186
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:22Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:22Z
+    mapit-pipeline-1-build-app-rkmn2:
+      pipelineTaskName: build-app
+      status:
+        conditions:
+        - lastTransitionTime: 2019-03-26T15:08:09Z
+          status: "True"
+          type: Succeeded
+        podName: mapit-pipeline-1-build-app-rkmn2-pod-cdfede
+        startTime: 2019-03-26T15:07:38Z
+        steps:
+        - terminated:
+            containerID: docker://ef73805c0ebd59be28327a36efa0a35ee78beffb8cfc55beb7e0f9ccb4d8b1ac
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:08Z
+            reason: Completed
+            startedAt: 2019-03-26T15:07:45Z
+        - terminated:
+            containerID: docker://be4fff691a10890946621468074a167f706d607ab0f3abdbd6e7827c0e5b91b2
+            exitCode: 0
+            finishedAt: 2019-03-26T15:07:51Z
+            reason: Completed
+            startedAt: 2019-03-26T15:07:44Z
+        - terminated:
+            containerID: docker://311e5e8e32c8d3e2a30ebdaba1b8cc2ede2280cec5571740392a09968c3002aa
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:08Z
+            reason: Completed
+            startedAt: 2019-03-26T15:07:45Z
+        - terminated:
+            containerID: docker://2066807ee6fb934a91d5f5f773313acdb95d480ea5ece2b3274875fc1b4c9ceb
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:08Z
+            reason: Completed
+            startedAt: 2019-03-26T15:07:45Z
+        - terminated:
+            containerID: docker://1c7e33f51cec2d33d6efcab51e83a956011b724e85856b95d72b721a916720cc
+            exitCode: 0
+            finishedAt: 2019-03-26T15:07:45Z
+            reason: Completed
+            startedAt: 2019-03-26T15:07:45Z
+    mapit-pipeline-1-build-image-692zf:
+      pipelineTaskName: build-image
+      status:
+        conditions:
+        - lastTransitionTime: 2019-03-26T15:08:55Z
+          status: "True"
+          type: Succeeded
+        podName: mapit-pipeline-1-build-image-692zf-pod-318508
+        startTime: 2019-03-26T15:08:47Z
+        steps:
+        - terminated:
+            containerID: docker://a746cc2dbd20fa96e0b8c9d48c44d5c2d124e1b6cc7824c578ad340b6fb97775
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:55Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:55Z
+        - terminated:
+            containerID: docker://eb5b6a286d1067211a56272e59ee13fa78d59af1c94dc28a486329bf97e67b9f
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:50Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:50Z
+        - terminated:
+            containerID: docker://d85ca7aedad37e470cb0150555b6ca6fa579e0427875633059c5a4e50136e178
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:52Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:52Z
+        - terminated:
+            containerID: docker://50d78dd15c9b6912fd05054f45fe7abfa1d196f90e23a1dfc3d45774afa09794
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:50Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:50Z
+        - terminated:
+            containerID: docker://577974dab66e1cb162632f737f2003d1bb4dc4ae8122a0e78b870020e0b3ed0a
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:55Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:55Z
+    mapit-pipeline-1-test-app-9hh2x:
+      pipelineTaskName: test-app
+      status:
+        conditions:
+        - lastTransitionTime: 2019-03-26T15:08:47Z
+          status: "True"
+          type: Succeeded
+        podName: mapit-pipeline-1-test-app-9hh2x-pod-d873b5
+        startTime: 2019-03-26T15:08:09Z
+        steps:
+        - terminated:
+            containerID: docker://854db76300f43eae1cff0f690200d9c941fa53ee271e24c701d921e7094c5fdf
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:30Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:13Z
+        - terminated:
+            containerID: docker://f5959d75ab1da571182c931f1d9703805773a03374bd846c91d1c5c1aa17ea53
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:12Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:12Z
+        - terminated:
+            containerID: docker://fe40ad0cf446826323db6e874b908e78474dd52dbc5509e4821575f478288a1e
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:13Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:13Z
+        - terminated:
+            containerID: docker://c2599a0438d198b2a312f06bdafcd243127ecb51c6f09b4fde7d5e7f9576c1c1
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:46Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:13Z
+        - terminated:
+            containerID: docker://4a0d93f362aacf3ab83a7fa982653f9f148750e2bbcaf851f6ed353e0d42dd48
+            exitCode: 0
+            finishedAt: 2019-03-26T15:08:14Z
+            reason: Completed
+            startedAt: 2019-03-26T15:08:14Z
