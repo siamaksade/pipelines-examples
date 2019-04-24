@@ -8,7 +8,7 @@ spec:
   - name: mapit-git
     type: git
   - name: mapit-image
-    type: git
+    type: image
   tasks:
   - name: build-app
     taskRef:
@@ -41,7 +41,12 @@ spec:
       name: buildah
     runAfter:
       - test-app
-      - analyse-app
+      - analyse-code
+    params:
+    - name: dockerfile
+      value: Dockerfile.openjdk
+    - name: verifyTLS
+      value: "false"
     resources:
       inputs:
       - name: workspace-git
