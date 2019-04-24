@@ -15,6 +15,6 @@ oc create -f tasks
 
 oc create -f pipeline/mapit-resources.yml
 oc create -f pipeline/mapit-build-pipeline.yml
-oc create -f pipeline/mapit-build-pipeline.yml
+oc create -f pipeline/mapit-build-pipeline-run.yml
 ```
 

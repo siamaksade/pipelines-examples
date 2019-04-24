@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1alpha1
 kind: Pipeline
 metadata:
-  name: mapit-pipeline
+  name: mapit-build-pipeline
 spec:
   resources:
   - name: mapit-git
@@ -20,28 +20,9 @@ spec:
       outputs:
       - name: workspace-git
         resource: mapit-git
-  - name: test-app
-    taskRef:
-      name: mvn-test
-    resources:
-      inputs:
-      - name: workspace-git
-        resource: mapit-git
-        from: [build-app]
-  - name: analyse-code
-    taskRef:
-      name: static-analysis
-    resources:
-      inputs:
-      - name: workspace-git
-        resource: mapit-git
-        from: [build-app]
   - name: build-image
     taskRef:
       name: buildah
-    runAfter:
-      - test-app
-      - analyse-code
     params:
     - name: dockerfile
       value: Dockerfile.openjdk
