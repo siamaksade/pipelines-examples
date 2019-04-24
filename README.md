@@ -8,8 +8,13 @@
 ![](images/mapit-pipeline.png)
 
 ```
-kubectl create -f tasks
-kubectl create -f pipelines/mapit-pipeline.yml
-kubectl create -f pipelines/mapit-pipeline-run.yml
+oc new-project demo
+oc adm policy add-scc-to-user privileged -z builder 
+
+oc create -f tasks
+
+oc create -f pipeline/mapit-resources.yml
+oc create -f pipeline/mapit-build-pipeline.yml
+oc create -f pipeline/mapit-build-pipeline.yml
 ```
 
