@@ -6,9 +6,9 @@ metadata:
   labels:
     tekton.dev/pipeline: mapit-build-pipeline
   name: mapit-build-pipelinerun-1
-  namespace: demo
+  namespace: pipeline-demo
   resourceVersion: "1140916"
-  selfLink: /apis/tekton.dev/v1alpha1/namespaces/demo/pipelineruns/mapit-build-pipelinerun-1
+  selfLink: /apis/tekton.dev/v1alpha1/namespaces/pipeline-demo/pipelineruns/mapit-build-pipelinerun-1
   uid: 0865c92c-66ad-11e9-9d3b-12e65efe076a
 spec:
   Status: ""
@@ -22,7 +22,7 @@ spec:
   - name: mapit-image
     resourceRef:
       name: mapit-image
-  serviceAccount: builder
+  serviceAccount: pipeline
   trigger:
     type: manual
 status:

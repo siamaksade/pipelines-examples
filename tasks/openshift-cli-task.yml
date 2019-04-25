@@ -7,11 +7,9 @@ spec:
     params:
     - name: command
       description: The OpenShift CLI commands to run
-spec:
   steps:
-    - name: run
-      image: docker.io/piyushgarg/oc4-image
-      command:
-        - /usr/local/bin/oc
-      args: 
-        - ${inputs.params.command}
+  - name: oc
+    image: docker.io/piyushgarg/oc4-image
+    command: ["/usr/local/bin/oc"]
+    args:
+    - "${inputs.params.command}"

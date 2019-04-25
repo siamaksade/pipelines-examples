@@ -1,0 +1,76 @@
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: openshift-cli-deploy-mapit
+spec:
+  steps:
+  - name: oc
+    image: docker.io/piyushgarg/oc4-image
+    command: ["/usr/local/bin/oc"]
+    args:
+    - rollout
+    - latest
+    - mapit-spring
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: mapit-deploy-pipeline
+spec:
+  resources:
+  - name: mapit-git
+    type: git
+  - name: mapit-image
+    type: image
+  tasks:
+  - name: build-app
+    taskRef:
+      name: mvn-build
+    resources:
+      inputs:
+      - name: workspace-git
+        resource: mapit-git
+      outputs:
+      - name: workspace-git
+        resource: mapit-git
+  - name: test-app
+    taskRef:
+      name: mvn-test
+    resources:
+      inputs:
+      - name: workspace-git
+        resource: mapit-git
+        from: [build-app]
+  - name: analyse-code
+    taskRef:
+      name: static-analysis
+    resources:
+      inputs:
+      - name: workspace-git
+        resource: mapit-git
+        from: [build-app]
+  - name: build-image
+    taskRef:
+      name: buildah
+    runAfter:
+      - test-app
+      - analyse-code
+    params:
+    - name: dockerfile
+      value: Dockerfile.openjdk
+    - name: verifyTLS
+      value: "false"
+    resources:
+      inputs:
+      - name: workspace-git
+        resource: mapit-git
+        from: [build-app]
+      outputs:
+      - name: image
+        resource: mapit-image
+  - name: deploy
+    taskRef:
+      name: openshift-cli-deploy-mapit
+    runAfter:
+      - build-image

@@ -17,4 +17,4 @@ spec:
   type: image
   params:
   - name: url
-    value: image-registry.openshift-image-registry.svc:5000/demo/mapit:latest
+    value: image-registry.openshift-image-registry.svc:5000/pipeline-demo/mapit-spring:latest
