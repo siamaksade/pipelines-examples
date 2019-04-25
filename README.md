@@ -16,7 +16,7 @@ oc create -f pipeline/mapit-resources.yml
 
 ## MapIt Build Pipeline
 
-![](images/mapit-build-pipeline.png)
+<img align="center" width="600" src="images/mapit-build-pipeline.png">
 
 ```
 oc create -f pipeline/mapit-build-pipeline.yml
@@ -25,7 +25,7 @@ oc create -f pipeline/mapit-build-pipeline-run.yml
 
 ## MapIt Deploy Pipeline
 
-![](images/mapit-deploy-pipeline.png)
+<img align="center" width="700" src="images/mapit-deploy-pipeline.png">
 
 ```
 # deploy app
