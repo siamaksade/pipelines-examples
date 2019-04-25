@@ -1,0 +1,218 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineRun
+metadata:
+  creationTimestamp: "2019-04-25T11:10:34Z"
+  generation: 1
+  labels:
+    tekton.dev/pipeline: mapit-deploy-pipeline
+  name: mapit-deploy-pipelinerun-1
+  namespace: pipeline-demo
+  resourceVersion: "1998907"
+  selfLink: /apis/tekton.dev/v1alpha1/namespaces/pipeline-demo/pipelineruns/mapit-deploy-pipelinerun-1
+  uid: bf764e4c-674a-11e9-b999-02a48f542950
+spec:
+  Status: ""
+  params: null
+  pipelineRef:
+    name: mapit-deploy-pipeline
+  resources:
+  - name: mapit-git
+    resourceRef:
+      name: mapit-git
+  - name: mapit-image
+    resourceRef:
+      name: mapit-image
+  serviceAccount: pipeline
+  trigger:
+    type: manual
+status:
+  conditions:
+  - lastTransitionTime: "2019-04-25T11:15:10Z"
+    message: All Tasks have completed executing
+    reason: Succeeded
+    status: "True"
+    type: Succeeded
+  startTime: "2019-04-25T11:10:34Z"
+  taskRuns:
+    mapit-deploy-pipelinerun-1-analyse-code-db6gb:
+      pipelineTaskName: analyse-code
+      status:
+        conditions:
+        - lastTransitionTime: "2019-04-25T11:12:04Z"
+          status: "True"
+          type: Succeeded
+        podName: mapit-deploy-pipelinerun-1-analyse-code-db6gb-pod-68335e
+        startTime: "2019-04-25T11:11:49Z"
+        steps:
+        - terminated:
+            containerID: cri-o://6406407ba944f337f998b4be7b9b2578a7caf2ef7e657b51e95deaf78875573f
+            exitCode: 0
+            finishedAt: "2019-04-25T11:12:00Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:12:00Z"
+        - terminated:
+            containerID: cri-o://cc7bea56180faa81304e23963ee29cd51a89f586d487be7bf9673b6996d8d9c9
+            exitCode: 0
+            finishedAt: "2019-04-25T11:12:01Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:12:01Z"
+        - terminated:
+            containerID: cri-o://b402b77f8a729d531233fa689478d25d7125ed684fc1b92bf3e32dbdefb50cab
+            exitCode: 0
+            finishedAt: "2019-04-25T11:12:02Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:12:02Z"
+        - terminated:
+            containerID: cri-o://19ed0e0ddd74f84a4bb2e3c543484642b1a1d8dce9a0bdfb41b5c68e505b9c88
+            exitCode: 0
+            finishedAt: "2019-04-25T11:12:00Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:12:00Z"
+        - terminated:
+            containerID: cri-o://494b22277985279244e48fe7ae0c9f3b46bd6701c93f068d1c2d287704d333fb
+            exitCode: 0
+            finishedAt: "2019-04-25T11:12:02Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:12:02Z"
+    mapit-deploy-pipelinerun-1-build-app-jsc4b:
+      pipelineTaskName: build-app
+      status:
+        conditions:
+        - lastTransitionTime: "2019-04-25T11:11:48Z"
+          status: "True"
+          type: Succeeded
+        podName: mapit-deploy-pipelinerun-1-build-app-jsc4b-pod-d91806
+        startTime: "2019-04-25T11:10:35Z"
+        steps:
+        - terminated:
+            containerID: cri-o://b995ec5b0e0fcd0f2cdbdf172cfb0d9100b9b5fb1d4dab3939eb061e80845574
+            exitCode: 0
+            finishedAt: "2019-04-25T11:11:47Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:11:02Z"
+        - terminated:
+            containerID: cri-o://40b07c6986caa7264ab93e8531fb7351fef055ce1488026c8dfa6268a354649d
+            exitCode: 0
+            finishedAt: "2019-04-25T11:11:05Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:11:02Z"
+        - terminated:
+            containerID: cri-o://e66978518117c5d440a56047f1a3f0972cea265a796fb3dbd68adc91adb31654
+            exitCode: 0
+            finishedAt: "2019-04-25T11:11:47Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:11:02Z"
+        - terminated:
+            containerID: cri-o://20871336bc8435882f685322953e211d688b100c959f377404b076ece41c2981
+            exitCode: 0
+            finishedAt: "2019-04-25T11:11:47Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:11:02Z"
+        - terminated:
+            containerID: cri-o://cb1ef4827c1d8fd44c74232a125f8869fbeed0f0cd7662c3938ac33ac1f27441
+            exitCode: 0
+            finishedAt: "2019-04-25T11:11:02Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:11:02Z"
+    mapit-deploy-pipelinerun-1-build-image-zh88c:
+      pipelineTaskName: build-image
+      status:
+        conditions:
+        - lastTransitionTime: "2019-04-25T11:14:58Z"
+          status: "True"
+          type: Succeeded
+        podName: mapit-deploy-pipelinerun-1-build-image-zh88c-pod-0b253c
+        startTime: "2019-04-25T11:13:20Z"
+        steps:
+        - terminated:
+            containerID: cri-o://4632589200e2f39e8321991fa944f496fea2df9645f7475227e1626f18e917f0
+            exitCode: 0
+            finishedAt: "2019-04-25T11:14:28Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:13:48Z"
+        - terminated:
+            containerID: cri-o://d54ed8594a2402bd0bad8a770a1f99228075743ec66473dc53d09330e59a68f4
+            exitCode: 0
+            finishedAt: "2019-04-25T11:13:47Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:13:47Z"
+        - terminated:
+            containerID: cri-o://3d6ae3259fd3be13a1bc5ae860342b45af4419e175c6fbfb869ee89af25489ff
+            exitCode: 0
+            finishedAt: "2019-04-25T11:14:58Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:13:48Z"
+        - terminated:
+            containerID: cri-o://ff6f8c8e01fac71770e1de5aa690a06409bcbca2e93e7425a286f19264ed683a
+            exitCode: 0
+            finishedAt: "2019-04-25T11:13:48Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:13:47Z"
+        - terminated:
+            containerID: cri-o://366b06bc96aee10971cb6b2cf694492706bc9380e7c0401b0a87f200f85dfec6
+            exitCode: 0
+            finishedAt: "2019-04-25T11:13:48Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:13:48Z"
+    mapit-deploy-pipelinerun-1-deploy-7jzpw:
+      pipelineTaskName: deploy
+      status:
+        conditions:
+        - lastTransitionTime: "2019-04-25T11:15:10Z"
+          status: "True"
+          type: Succeeded
+        podName: mapit-deploy-pipelinerun-1-deploy-7jzpw-pod-b1b0ad
+        startTime: "2019-04-25T11:14:58Z"
+        steps:
+        - terminated:
+            containerID: cri-o://d11f37ed1af040a93ee4fec019847288a32d9eb12d8f0e2003cbc9a662498332
+            exitCode: 0
+            finishedAt: "2019-04-25T11:15:09Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:15:08Z"
+        - terminated:
+            containerID: cri-o://2dfa18ce3b5a04de8e7db2860efd846242682f21e9edd72553727cdf5930b50f
+            exitCode: 0
+            finishedAt: "2019-04-25T11:15:08Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:15:08Z"
+    mapit-deploy-pipelinerun-1-test-app-hxp8s:
+      pipelineTaskName: test-app
+      status:
+        conditions:
+        - lastTransitionTime: "2019-04-25T11:13:20Z"
+          status: "True"
+          type: Succeeded
+        podName: mapit-deploy-pipelinerun-1-test-app-hxp8s-pod-574eef
+        startTime: "2019-04-25T11:11:48Z"
+        steps:
+        - terminated:
+            containerID: cri-o://dea8a1e83e9f50fa22840d890375329d211d3549d082c3b3eebacf732f63182a
+            exitCode: 0
+            finishedAt: "2019-04-25T11:12:42Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:12:00Z"
+        - terminated:
+            containerID: cri-o://f632a3b5292fce84a2d02f1366352ddf4e37f10f7bd1bc793f83c76cdcf11776
+            exitCode: 0
+            finishedAt: "2019-04-25T11:11:59Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:11:59Z"
+        - terminated:
+            containerID: cri-o://5667a6cacea70052b0291735b3dc49cb4e9b913fd64f4bf261cbe4b90a150781
+            exitCode: 0
+            finishedAt: "2019-04-25T11:12:00Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:12:00Z"
+        - terminated:
+            containerID: cri-o://f5ea1530b91e8d4b8fb343fa30fca0e5f55619fca34fe8ae71b789e784b68609
+            exitCode: 0
+            finishedAt: "2019-04-25T11:13:19Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:12:00Z"
+        - terminated:
+            containerID: cri-o://087ec134d9458e32c41b487b0699f60b384498d104b9c04a49f44346557cdd21
+            exitCode: 0
+            finishedAt: "2019-04-25T11:12:00Z"
+            reason: Completed
+            startedAt: "2019-04-25T11:12:00Z"

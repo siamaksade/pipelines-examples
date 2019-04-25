@@ -6,12 +6,16 @@
 ```
 oc new-project pipeline-demo
 
+# create service account
+
 oc create serviceaccount pipeline
 oc adm policy add-scc-to-user privileged -z pipeline
 oc adm policy add-role-to-user edit -z pipeline
 
+# create pipline tasks and resources
+
 oc create -f tasks
-oc create -f pipeline/mapit-resources.yml
+oc create -f pipelines/mapit-resources.yml
 ```
 
 ## MapIt Build Pipeline
@@ -19,8 +23,8 @@ oc create -f pipeline/mapit-resources.yml
 <img align="center" width="600" src="images/mapit-build-pipeline.png">
 
 ```
-oc create -f pipeline/mapit-build-pipeline.yml
-oc create -f pipeline/mapit-build-pipeline-run.yml
+oc create -f pipelines/mapit-build-pipeline.yml
+oc create -f pipelines/mapit-build-pipeline-run.yml
 ```
 
 ## MapIt Deploy Pipeline
@@ -28,10 +32,10 @@ oc create -f pipeline/mapit-build-pipeline-run.yml
 <img align="center" width="700" src="images/mapit-deploy-pipeline.png">
 
 ```
-# deploy app
-oc create -f apps/mapit-spring.yml
+# deploy mapit
+oc apply -f apps/mapit-spring.yml
 
 # create pipeline
-oc create -f pipeline/mapit-deploy-pipeline.yml
-oc create -f pipeline/mapit-deploy-pipeline-run.yml
+oc create -f pipelines/mapit-deploy-pipeline.yml
+oc create -f pipelines/mapit-deploy-pipeline-run.yml
 ```
