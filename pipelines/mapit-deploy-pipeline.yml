@@ -6,7 +6,7 @@ metadata:
 spec:
   steps:
   - name: oc
-    image: docker.io/piyushgarg/oc4-image
+    image: quay.io/openshift-pipeline/openshift-cli
     command: ["/usr/local/bin/oc"]
     args:
     - rollout
