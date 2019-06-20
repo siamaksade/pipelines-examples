@@ -2,12 +2,12 @@
 apiVersion: tekton.dev/v1alpha1
 kind: Pipeline
 metadata:
-  name: mapit-build-pipeline
+  name: build-pipeline
 spec:
   resources:
-  - name: mapit-git
+  - name: app-git
     type: git
-  - name: mapit-image
+  - name: app-image
     type: image
   tasks:
   - name: build-app
@@ -15,24 +15,24 @@ spec:
       name: mvn-build
     resources:
       inputs:
-      - name: workspace-git
-        resource: mapit-git
+      - name: source
+        resource: app-git
       outputs:
-      - name: workspace-git
-        resource: mapit-git
+      - name: source
+        resource: app-git
   - name: build-image
     taskRef:
       name: buildah
     params:
-    - name: dockerfile
+    - name: DOCKERFILE
       value: Dockerfile.openjdk
-    - name: verifyTLS
+    - name: TLSVERIFY
       value: "false"
     resources:
       inputs:
-      - name: workspace-git
-        resource: mapit-git
+      - name: source
+        resource: app-git
         from: [build-app]
       outputs:
       - name: image
-        resource: mapit-image
+        resource: app-image

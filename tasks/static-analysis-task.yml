@@ -5,7 +5,7 @@ metadata:
 spec:
   inputs:
     resources:
-    - name: workspace-git
+    - name: source
       targetPath: /
       type: git
   steps:

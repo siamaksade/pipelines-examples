@@ -2,17 +2,17 @@
 apiVersion: tekton.dev/v1alpha1
 kind: PipelineRun
 metadata:
-  name: mapit-build-pipelinerun-1
+  generateName: mapit-build-pipelinerun-
 spec:
   serviceAccount: pipeline
   pipelineRef:
-    name: mapit-build-pipeline
+    name: build-pipeline
   trigger:
     type: manual
   resources:
-  - name: mapit-git
+  - name: app-git
     resourceRef:
       name: mapit-git
-  - name: mapit-image
+  - name: app-image
     resourceRef:
       name: mapit-image
