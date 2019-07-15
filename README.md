@@ -29,7 +29,7 @@ oc create -f pipelines/mapit-resources.yml
 <img align="center" width="600" src="images/mapit-build-pipeline.png">
 
 ```
-oc create -f pipelines/mapit-build-pipeline.yml
+oc create -f pipelines/build-pipeline.yml
 oc create -f pipelines/mapit-build-pipeline-run.yml
 ```
 
@@ -42,6 +42,6 @@ oc create -f pipelines/mapit-build-pipeline-run.yml
 oc apply -f apps/mapit-spring.yml
 
 # create pipeline
-oc create -f pipelines/mapit-deploy-pipeline.yml
+oc create -f pipelines/deploy-pipeline.yml
 oc create -f pipelines/mapit-deploy-pipeline-run.yml
 ```
