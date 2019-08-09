@@ -1,0 +1,282 @@
+# 
+# USAGE:
+#   oc new-project pipelines-demo
+#   oc create -f petclinic-all.yml
+#   tkn pipeline start petclinic-deploy-pipeline --resource app-git=petclinic-git --resource app-image=petclinic-image
+#   tkn pipeline logs -f
+#
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pipeline
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - privileged
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pipeline-binding
+roleRef:
+  kind: Role
+  name: pipeline
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: pipelines-demo
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  labels:
+    app: spring-petclinic
+  name: spring-petclinic
+---
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: spring-petclinic
+  name: spring-petclinic
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    app: spring-petclinic
+    deploymentconfig: spring-petclinic
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: spring-petclinic
+        deploymentconfig: spring-petclinic
+    spec:
+      containers:
+      - image: spring-petclinic:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: spring-petclinic
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        - containerPort: 8443
+          protocol: TCP
+        - containerPort: 8778
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+  test: false
+  triggers:
+  - imageChangeParams:
+      containerNames:
+      - spring-petclinic
+      from:
+        kind: ImageStreamTag
+        name: spring-petclinic:latest
+        namespace: pipelines-demo
+    type: ImageChange
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: spring-petclinic
+  name: spring-petclinic
+spec:
+  ports:
+  - name: 8080-tcp
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  - name: 8443-tcp
+    port: 8443
+    protocol: TCP
+    targetPort: 8443
+  - name: 8778-tcp
+    port: 8778
+    protocol: TCP
+    targetPort: 8778
+  selector:
+    app: spring-petclinic
+    deploymentconfig: spring-petclinic
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app: spring-petclinic
+  name: spring-petclinic
+spec:
+  port:
+    targetPort: 8080-tcp
+  to:
+    kind: Service
+    name: spring-petclinic
+    weight: 100
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: openshift-client
+spec:
+  inputs:
+    params:
+      - name: ARGS
+        description: The OpenShift CLI arguments to run
+        default: help
+  steps:
+    - name: oc
+      image: quay.io/openshift-pipeline/openshift-cli:latest
+      command: ["/usr/local/bin/oc"]
+      args:
+        - "${inputs.params.ARGS}"
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: s2i-java-8
+spec:
+  inputs:
+    resources:
+      - name: source
+        type: git
+    params:
+      - name: PATH_CONTEXT
+        description: The location of the path to run s2i from.
+        default: .
+      - name: TLSVERIFY
+        description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
+        default: "true"
+  outputs:
+    resources:
+      - name: image
+        type: image
+  steps:
+    - name: generate
+      image: quay.io/openshift-pipeline/s2i
+      workingdir: /workspace/source
+      command: ['s2i', 'build', '${inputs.params.PATH_CONTEXT}', 'registry.access.redhat.com/redhat-openjdk-18/openjdk18-openshift', '--image-scripts-url', 'image:///usr/local/s2i', '--as-dockerfile', '/gen-source/Dockerfile.gen']
+      volumeMounts:
+        - name: gen-source
+          mountPath: /gen-source
+    - name: build
+      image: quay.io/buildah/stable
+      workingdir: /gen-source
+      command: ['buildah', 'bud', '--tls-verify=${inputs.params.TLSVERIFY}', '--layers', '-f', '/gen-source/Dockerfile.gen', '-t', '${outputs.resources.image.url}', '.']
+      volumeMounts:
+        - name: varlibcontainers
+          mountPath: /var/lib/containers
+        - name: gen-source
+          mountPath: /gen-source
+      securityContext:
+        privileged: true
+    - name: push
+      image: quay.io/buildah/stable
+      command: ['buildah', 'push', '--tls-verify=${inputs.params.TLSVERIFY}', '${outputs.resources.image.url}', 'docker://${outputs.resources.image.url}']
+      volumeMounts:
+        - name: varlibcontainers
+          mountPath: /var/lib/containers
+      securityContext:
+        privileged: true
+  volumes:
+    - name: varlibcontainers
+      emptyDir: {}
+    - name: gen-source
+      emptyDir: {}
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: petclinic-deploy-pipeline
+spec:
+  resources:
+  - name: app-git
+    type: git
+  - name: app-image
+    type: image
+  tasks:
+  - name: build
+    taskRef:
+      name: s2i-java-8
+    params:
+      - name: TLSVERIFY
+        value: "false"
+    resources:
+      inputs:
+      - name: source
+        resource: app-git
+      outputs:
+      - name: image
+        resource: app-image
+  - name: deploy
+    taskRef:
+      name: openshift-client
+    runAfter:
+      - build
+    params:
+    - name: ARGS
+      value: "rollout latest spring-petclinic"
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: petclinic-image
+spec:
+  type: image
+  params:
+  - name: url
+    value: image-registry.openshift-image-registry.svc:5000/pipelines-demo/spring-petclinic
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: petclinic-git
+spec:
+  type: git
+  params:
+  - name: url
+    value: https://github.com/spring-projects/spring-petclinic
