@@ -2,8 +2,10 @@
 # USAGE:
 #   oc new-project pipelines-demo
 #   oc create -f http://bit.ly/pipelines-demo
-#   tkn pipeline start petclinic-deploy-pipeline --resource app-git=petclinic-git --resource app-image=petclinic-image
+#   tkn pipeline start petclinic-pipeline --resource app-git=petclinic-git --resource app-image=petclinic-image
 #   tkn pipeline logs -f
+# 
+#   tkn pipeline start petclinic-pipeline --last
 #
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -241,7 +243,7 @@ spec:
 apiVersion: tekton.dev/v1alpha1
 kind: Pipeline
 metadata:
-  name: petclinic-deploy-pipeline
+  name: petclinic-pipeline
 spec:
   resources:
   - name: app-git
