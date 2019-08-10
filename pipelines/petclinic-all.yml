@@ -1,7 +1,7 @@
 # 
 # USAGE:
 #   oc new-project pipelines-demo
-#   oc create -f petclinic-all.yml
+#   oc create -f http://bit.ly/pipelines-demo
 #   tkn pipeline start petclinic-deploy-pipeline --resource app-git=petclinic-git --resource app-image=petclinic-image
 #   tkn pipeline logs -f
 #
@@ -23,7 +23,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: pipeline-binding
+  name: default-pipeline-binding
 roleRef:
   kind: Role
   name: pipeline
@@ -32,6 +32,16 @@ subjects:
 - kind: ServiceAccount
   name: default
   namespace: pipelines-demo
+---
+apiVersion: v1
+kind: RoleBinding
+metadata:
+  name: default-admin-binding
+roleRef:
+  name: admin
+subjects:
+- kind: ServiceAccount
+  name: default
 ---
 apiVersion: image.openshift.io/v1
 kind: ImageStream
