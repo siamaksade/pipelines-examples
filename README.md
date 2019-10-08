@@ -30,7 +30,7 @@ oc create -f pipelines/mapit-resources.yml
 
 ```
 oc create -f pipelines/build-pipeline.yml
-oc create -f pipelines/mapit-build-pipeline-run.yml
+tkn pipeline start build-pipeline -s pipeline
 ```
 
 ## MapIt Deploy Pipeline
@@ -43,5 +43,5 @@ oc apply -f apps/mapit-spring.yml
 
 # create pipeline
 oc create -f pipelines/deploy-pipeline.yml
-oc create -f pipelines/mapit-deploy-pipeline-run.yml
+tkn pipeline start deploy-pipeline -s pipeline
 ```
