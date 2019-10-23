@@ -45,3 +45,11 @@ oc apply -f apps/mapit-spring.yml
 oc create -f pipelines/deploy-pipeline.yml
 tkn pipeline start deploy-pipeline -s pipeline
 ```
+
+# PetClinic Demo
+
+```
+oc create -f http://bit.ly/pipelines-demo
+oc project pipelines-demo
+tkn pipeline start petclinic-s2i-pipeline -s pipeline
+```

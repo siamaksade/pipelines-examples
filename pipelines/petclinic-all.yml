@@ -2,12 +2,7 @@
 # USAGE:
 #   oc create -f http://bit.ly/pipelines-demo
 #   oc project pipelines-demo
-#
-#   tkn pipeline list 
-#   tkn pipeline start petclinic-s2i-pipeline --resource app-git=petclinic-git --resource app-image=petclinic-image
-#   tkn pipeline logs -f
-# 
-#   tkn pipeline start petclinic-s2i-pipeline --last
+#   tkn pipeline start petclinic-s2i-pipeline -s pipeline
 #
 
 ---
@@ -15,54 +10,6 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: pipelines-demo
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: pipeline
-  namespace: pipelines-demo
-rules:
-- apiGroups:
-  - security.openshift.io
-  resourceNames:
-  - privileged
-  resources:
-  - securitycontextconstraints
-  verbs:
-  - use
-- apiGroups:
-  - security.openshift.io
-  resourceNames:
-  - anyuid
-  resources:
-  - securitycontextconstraints
-  verbs:
-  - use
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: default-pipeline-binding
-  namespace: pipelines-demo
-roleRef:
-  kind: Role
-  name: pipeline
-  apiGroup: rbac.authorization.k8s.io
-subjects:
-- kind: ServiceAccount
-  name: default
-  namespace: pipelines-demo
----
-apiVersion: v1
-kind: RoleBinding
-metadata:
-  name: default-admin-binding
-  namespace: pipelines-demo
-roleRef:
-  name: admin
-subjects:
-- kind: ServiceAccount
-  name: default
 ---
 apiVersion: image.openshift.io/v1
 kind: ImageStream
@@ -201,45 +148,33 @@ spec:
 apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
-  name: mvn-test
+  name: mvn
   namespace: pipelines-demo
 spec:
   inputs:
-    resources:
-    - name: source
-      targetPath: /
-      type: git
-  outputs:
+    params:
+      - name: GOALS
+        description: The Maven goals to run
+        type: array
+        default:
+        - "package"
     resources:
     - name: source
       targetPath: /
       type: git
   steps:
   - name: test
-    image: maven:3.6.0-jdk-8-slim
+    image: maven:3.6.2-slim
     command:
     - /usr/bin/mvn
     args:
-    - package
----
-apiVersion: tekton.dev/v1alpha1
-kind: Task
-metadata:
-  name: mvn-verify
-  namespace: pipelines-demo
-spec:
-  inputs:
-    resources:
-    - name: source
-      targetPath: /
-      type: git
-  steps:
-  - name: verify
-    image: maven:3.6.0-jdk-8-slim
-    command:
-    - /usr/bin/mvn
-    args:
-    - verify
+      - "$(inputs.params.GOALS)"
+    volumeMounts:
+      - name: m2-repository
+        mountPath: /.m2
+  volumes:
+    - name: m2-repository
+      emptyDir: {}
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: Task
@@ -251,13 +186,15 @@ spec:
     params:
       - name: ARGS
         description: The OpenShift CLI arguments to run
-        default: help
+        type: array
+        default:
+        - "help"
   steps:
     - name: oc
-      image: quay.io/openshift-pipeline/openshift-cli:0.5.0
-      command: ["/usr/local/bin/oc"]
+      image: quay.io/openshift/origin-cli:latest
+      command: ["/usr/bin/oc"]
       args:
-        - "${inputs.params.ARGS}"
+        - "$(inputs.params.ARGS)"
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: Task
@@ -271,27 +208,76 @@ spec:
         type: git
     params:
       - name: PATH_CONTEXT
-        description: The location of the path to run s2i from.
+        description: The location of the path to run s2i from
         default: .
+        type: string
       - name: TLSVERIFY
         description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
         default: "true"
+        type: string
+      - name: MAVEN_ARGS_APPEND
+        description: Additional Maven arguments
+        default: ""
+        type: string
+      - name: MAVEN_CLEAR_REPO
+        description: Remove the Maven repository after the artifact is built
+        default: "false"
+        type: string
+      - name: MAVEN_MIRROR_URL
+        description: The base URL of a mirror used for retrieving artifacts
+        default: ""
+        type: string
   outputs:
     resources:
       - name: image
         type: image
   steps:
+    - name: gen-env-file
+      image: quay.io/openshift-pipeline/s2i
+      workingdir: /env-params
+      command:
+        - '/bin/sh'
+        - '-c'
+      args:
+        - |-
+          echo "MAVEN_CLEAR_REPO=$(inputs.params.MAVEN_CLEAR_REPO)" > env-file
+
+          [[ '$(inputs.params.MAVEN_ARGS_APPEND)' != "" ]] &&
+            echo "MAVEN_ARGS_APPEND=$(inputs.params.MAVEN_ARGS_APPEND)" >> env-file
+
+          [[ '$(inputs.params.MAVEN_MIRROR_URL)' != "" ]] &&
+            echo "MAVEN_MIRROR_URL=$(inputs.params.MAVEN_MIRROR_URL)" >> env-file
+
+          echo "Generated Env file"
+          echo "------------------------------"
+          cat env-file
+          echo "------------------------------"
+      volumeMounts:
+        - name: envparams
+          mountPath: /env-params
     - name: generate
       image: quay.io/openshift-pipeline/s2i
       workingdir: /workspace/source
-      command: ['s2i', 'build', '${inputs.params.PATH_CONTEXT}', 'registry.access.redhat.com/redhat-openjdk-18/openjdk18-openshift', '--image-scripts-url', 'image:///usr/local/s2i', '--as-dockerfile', '/gen-source/Dockerfile.gen']
+      command:
+        - 's2i'
+        - 'build'
+        - '$(inputs.params.PATH_CONTEXT)'
+        - 'registry.access.redhat.com/redhat-openjdk-18/openjdk18-openshift'
+        - '--image-scripts-url'
+        - 'image:///usr/local/s2i'
+        - '--as-dockerfile'
+        - '/gen-source/Dockerfile.gen'
+        - '--environment-file'
+        - '/env-params/env-file'
       volumeMounts:
         - name: gen-source
           mountPath: /gen-source
+        - name: envparams
+          mountPath: /env-params
     - name: build
       image: quay.io/buildah/stable
       workingdir: /gen-source
-      command: ['buildah', 'bud', '--tls-verify=${inputs.params.TLSVERIFY}', '--layers', '-f', '/gen-source/Dockerfile.gen', '-t', '${outputs.resources.image.url}', '.']
+      command: ['buildah', 'bud', '--tls-verify=$(inputs.params.TLSVERIFY)', '--layers', '-f', '/gen-source/Dockerfile.gen', '-t', '$(outputs.resources.image.url)', '.']
       volumeMounts:
         - name: varlibcontainers
           mountPath: /var/lib/containers
@@ -301,7 +287,7 @@ spec:
         privileged: true
     - name: push
       image: quay.io/buildah/stable
-      command: ['buildah', 'push', '--tls-verify=${inputs.params.TLSVERIFY}', '${outputs.resources.image.url}', 'docker://${outputs.resources.image.url}']
+      command: ['buildah', 'push', '--tls-verify=$(inputs.params.TLSVERIFY)', '$(outputs.resources.image.url)', 'docker://$(outputs.resources.image.url)']
       volumeMounts:
         - name: varlibcontainers
           mountPath: /var/lib/containers
@@ -312,178 +298,8 @@ spec:
       emptyDir: {}
     - name: gen-source
       emptyDir: {}
----
-apiVersion: tekton.dev/v1alpha1
-kind: Task
-metadata:
-  name: kaniko
-  namespace: pipelines-demo
-spec:
-  inputs:
-    params:
-    - name: DOCKERFILE
-      description: Path to the Dockerfile to build.
-      default: ./Dockerfile
-    - name: CONTEXT
-      description: The build context used by Kaniko.
-      default: ./
-    resources:
-    - name: source
-      type: git
-  outputs:
-    resources:
-    - name: image
-      type: image
-  steps:
-  - name: build-and-push
-    workingdir: /workspace/source
-    image: gcr.io/kaniko-project/executor:v0.9.0
-    # specifying DOCKER_CONFIG is required to allow kaniko to detect docker credential
-    # https://github.com/tektoncd/pipeline/pull/706
-    env:
-    - name: DOCKER_CONFIG
-      value: /builder/home/.docker
-    command:
-    - /kaniko/executor
-    - --dockerfile=${inputs.params.DOCKERFILE}
-    - --context=/workspace/source/${inputs.params.CONTEXT} # The user does not need to care the workspace and the source.
-    - --destination=${outputs.resources.image.url}
----
-apiVersion: tekton.dev/v1alpha1
-kind: Task
-metadata:
-  name: buildpacks-v3
-  namespace: pipelines-demo
-spec:
-  inputs:
-    params:
-    - name: BUILDER_IMAGE
-      description: The image on which builds will run (must include v3 lifecycle and compatible buildpacks).
-    - name: USE_CRED_HELPERS
-      description: Use Docker credential helpers for Google's GCR, Amazon's ECR, or Microsoft's ACR.
-      default: 'false'
-    - name: CACHE
-      description: The name of the persistent app cache volume
-      default: empty-dir
-    - name: USER_ID
-      description: The user ID of the builder image user
-      default: "1000"
-    - name: GROUP_ID
-      description: The group ID of the builder image user
-      default: "1000"
-
-    resources:
-    - name: source
-      type: git
-
-  outputs:
-    resources:
-    - name: image
-      type: image
-
-  steps:
-  - name: prepare
-    image: alpine
-    imagePullPolicy: Always
-    command: ["/bin/sh"]
-    args:
-    - "-c"
-    - >
-      chown -R "${inputs.params.USER_ID}:${inputs.params.GROUP_ID}" "/builder/home" &&
-      chown -R "${inputs.params.USER_ID}:${inputs.params.GROUP_ID}" "/layers" &&
-      chown -R "${inputs.params.USER_ID}:${inputs.params.GROUP_ID}" "/cache" &&
-      chown -R "${inputs.params.USER_ID}:${inputs.params.GROUP_ID}" "/workspace/source"
-    volumeMounts:
-    - name: "layers-dir"
-      mountPath: /layers
-    - name: "${inputs.params.CACHE}"
-      mountPath: /cache
-
-  - name: detect
-    image: ${inputs.params.BUILDER_IMAGE}
-    imagePullPolicy: Always
-    command: ["/lifecycle/detector"]
-    args:
-    - "-app=/workspace/source"
-    - "-group=/layers/group.toml"
-    - "-plan=/layers/plan.toml"
-    volumeMounts:
-    - name: "layers-dir"
-      mountPath: /layers
-    
-  - name: restore
-    image: ${inputs.params.BUILDER_IMAGE}
-    imagePullPolicy: Always
-    command: ["/lifecycle/restorer"]
-    args:
-    - "-group=/layers/group.toml"
-    - "-layers=/layers"
-    - "-path=/cache"
-    volumeMounts:
-    - name: "${inputs.params.CACHE}"
-      mountPath: /cache
-    - name: "layers-dir"
-      mountPath: /layers
-
-  - name: analyze
-    image: ${inputs.params.BUILDER_IMAGE}
-    imagePullPolicy: Always
-    command: ["/lifecycle/analyzer"]
-    args:
-    - "-layers=/layers"
-    - "-helpers=${inputs.params.USE_CRED_HELPERS}"
-    - "-group=/layers/group.toml"
-    - "${outputs.resources.image.url}"
-    volumeMounts:
-    - name: "layers-dir"
-      mountPath: /layers
-
-  - name: build
-    image: ${inputs.params.BUILDER_IMAGE}
-    imagePullPolicy: Always
-    command: ["/lifecycle/builder"]
-    args:
-    - "-app=/workspace/source"
-    - "-layers=/layers"
-    - "-group=/layers/group.toml"
-    - "-plan=/layers/plan.toml"
-    volumeMounts:
-    - name: "layers-dir"
-      mountPath: /layers
-
-  - name: export
-    image: ${inputs.params.BUILDER_IMAGE}
-    imagePullPolicy: Always
-    command: ["/lifecycle/exporter"]
-    args:
-    - "-app=/workspace/source"
-    - "-layers=/layers"
-    - "-helpers=${inputs.params.USE_CRED_HELPERS}"
-    - "-group=/layers/group.toml"
-    - "${outputs.resources.image.url}"
-    volumeMounts:
-    - name: "layers-dir"
-      mountPath: /layers
-
-  - name: cache
-    image: ${inputs.params.BUILDER_IMAGE}
-    imagePullPolicy: Always
-    command: ["/lifecycle/cacher"]
-    args:
-    - "-layers=/layers"
-    - "-group=/layers/group.toml"
-    - "-path=/cache"
-    volumeMounts:
-    - name: "${inputs.params.CACHE}"
-      mountPath: /cache
-    - name: "layers-dir"
-      mountPath: /layers
-
-  volumes:
-  - name: empty-dir
-    emptyDir: {}
-  - name: layers-dir
-    emptyDir: {}
+    - name: envparams
+      emptyDir: {}
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: PipelineResource
@@ -505,7 +321,7 @@ spec:
   type: git
   params:
   - name: url
-    value: https://github.com/siamaksade/spring-petclinic
+    value: https://github.com/spring-projects/spring-petclinic
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: Pipeline
@@ -521,14 +337,15 @@ spec:
   tasks:
   - name: unit-test
     taskRef:
-      name: mvn-test
+      name: mvn
     resources:
       inputs:
       - name: source
         resource: app-git
-      outputs:
-      - name: source
-        resource: app-git
+    params:
+    - name: GOALS
+      value: 
+        - package
   - name: build-s2i
     taskRef:
       name: s2i-java-8
@@ -546,13 +363,17 @@ spec:
         resource: app-image
   - name: int-test
     taskRef:
-      name: mvn-verify
+      name: mvn
     runAfter:
       - unit-test
     resources:
       inputs:
       - name: source
         resource: app-git
+    params:
+    - name: GOALS
+      value:
+        - verify
   - name: deploy
     taskRef:
       name: openshift-client
@@ -561,118 +382,7 @@ spec:
       - int-test
     params:
     - name: ARGS
-      value: "rollout latest spring-petclinic"
-# ---
-# apiVersion: tekton.dev/v1alpha1
-# kind: Pipeline
-# metadata:
-#   name: petclinic-kaniko-pipeline
-#   namespace: pipelines-demo
-# spec:
-#   resources:
-#   - name: app-git
-#     type: git
-#   - name: app-image
-#     type: image
-#   tasks:
-#   - name: unit-test
-#     taskRef:
-#       name: mvn-test
-#     resources:
-#       inputs:
-#       - name: source
-#         resource: app-git
-#       outputs:
-#       - name: source
-#         resource: app-git
-#   - name: build-kaniko
-#     taskRef:
-#       name: kaniko
-#     runAfter:
-#       - unit-test
-#     params:
-#     - name: DOCKERFILE
-#       value: ./Dockerfile.openjdk
-#     resources:
-#       inputs:
-#       - name: source
-#         resource: app-git
-#         from:
-#           - unit-test
-#       outputs:
-#       - name: image
-#         resource: app-image
-#   - name: int-test
-#     taskRef:
-#       name: mvn-verify
-#     runAfter:
-#       - unit-test
-#     resources:
-#       inputs:
-#       - name: source
-#         resource: app-git
-#   - name: deploy
-#     taskRef:
-#       name: openshift-client
-#     runAfter:
-#       - build-kaniko
-#       - int-test
-#     params:
-#     - name: ARGS
-#       value: "rollout latest spring-petclinic"
-# ---
-# apiVersion: tekton.dev/v1alpha1
-# kind: Pipeline
-# metadata:
-#   name: petclinic-buildpack-pipeline
-#   namespace: pipelines-demo
-# spec:
-#   resources:
-#   - name: app-git
-#     type: git
-#   - name: app-image
-#     type: image
-#   tasks:
-#   - name: unit-test
-#     taskRef:
-#       name: mvn-test
-#     resources:
-#       inputs:
-#       - name: source
-#         resource: app-git
-#       outputs:
-#       - name: source
-#         resource: app-git
-#   - name: build-buildpack
-#     taskRef:
-#       name: buildpacks-v3
-#     runAfter:
-#       - unit-test
-#     params:
-#       - name: BUILDER_IMAGE
-#         value: gcr.io/cncf-buildpacks-ci/tekton-cnb-test:bionic
-#     resources:
-#       inputs:
-#       - name: source
-#         resource: app-git
-#       outputs:
-#       - name: image
-#         resource: app-image
-#   - name: int-test
-#     taskRef:
-#       name: mvn-verify
-#     runAfter:
-#       - unit-test
-#     resources:
-#       inputs:
-#       - name: source
-#         resource: app-git
-#   - name: deploy
-#     taskRef:
-#       name: openshift-client
-#     runAfter:
-#       - build-buildpack
-#       - int-test
-#     params:
-#     - name: ARGS
-#       value: "rollout latest spring-petclinic"
+      value:
+        - rollout
+        - latest
+        - spring-petclinic
