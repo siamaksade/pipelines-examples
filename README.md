@@ -50,12 +50,12 @@ tkn pipeline start deploy-pipeline -s pipeline
 
 On Kubernetes
 ```
-kubectl apply -k openshift-pipelines-examples/demos/petclinic/k8s
+kubectl apply -k demos/petclinic/k8s
 ```
 
 On OpenShift
 ```
-oc apply -k openshift-pipelines-examples/demos/petclinic/os --validate=false
+oc apply -k demos/petclinic/os --validate=false
 ```
 
 Start the pipeline
