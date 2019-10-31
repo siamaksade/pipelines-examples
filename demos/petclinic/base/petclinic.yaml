@@ -1,9 +1,3 @@
-# 
-# USAGE:
-#   kubectl create -f http://bit.ly/pipelines-demo
-#   tkn pipeline start petclinic-s2i-pipeline -s pipeline -n pipelines-demo
-#
-
 ---
 apiVersion: v1
 kind: Namespace
