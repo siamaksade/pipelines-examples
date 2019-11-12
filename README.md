@@ -46,10 +46,19 @@ oc create -f pipelines/deploy-pipeline.yml
 tkn pipeline start deploy-pipeline -s pipeline
 ```
 
-# PetClinic Demo
+# PetClinic Pipeline Demo
 
+On Kubernetes
 ```
-oc create -f http://bit.ly/pipelines-demo
-oc project pipelines-demo
-tkn pipeline start petclinic-s2i-pipeline -s pipeline
+kubectl apply -k demos/petclinic/k8s
+```
+
+On OpenShift
+```
+oc apply -k demos/petclinic/os --validate=false
+```
+
+Start the pipeline
+```
+tkn pipeline start petclinic-s2i-pipeline -s pipeline -n pipelines-demo
 ```
