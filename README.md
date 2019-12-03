@@ -36,23 +36,13 @@ tkn pipeline start build-pipeline
 oc apply -f apps/mapit-spring.yml
 
 # create pipeline
-oc create -f pipelines/deploy-pipeline.yml
+oc apply -f pipelines/deploy-pipeline.yml
 tkn pipeline start deploy-pipeline
 ```
 
 # PetClinic Pipeline Demo
 
-On Kubernetes
 ```
-kubectl apply -k demos/petclinic/k8s
-```
-
-On OpenShift
-```
-oc apply -k demos/petclinic/os --validate=false
-```
-
-Start the pipeline
-```
+oc apply -f pipelines/petclinic-all.yml
 tkn pipeline start petclinic-s2i-pipeline -n pipelines-demo
 ```

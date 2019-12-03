@@ -1,8 +1,7 @@
 # 
 # USAGE:
 #   oc create -f http://bit.ly/pipelines-demo
-#   oc project pipelines-demo
-#   tkn pipeline start petclinic-s2i-pipeline -s pipeline
+#   tkn pipeline start petclinic-s2i-pipeline -n pipelines-demo
 #
 
 ---
@@ -11,16 +10,114 @@ kind: Namespace
 metadata:
   name: pipelines-demo
 ---
-apiVersion: image.openshift.io/v1
-kind: ImageStream
+# bucketrepo maven repository
+apiVersion: v1
+kind: Secret
 metadata:
-  labels:
-    app: spring-petclinic
-  name: spring-petclinic
+  name: bucketrepo-config
   namespace: pipelines-demo
+  annotations:
+    config/checksum: 533347b915964ea57056e799479ab96181274ee7cde598452affee274449ad22
+type: Opaque
+stringData:
+  config.yaml: |
+    http:
+        addr: ":8080"
+    
+    storage:
+        enabled: false
+        bucket_url: "gs://bucketrepo"
+    
+    cache:
+        base_dir: "/tmp/bucketrepo"
+    
+    repositories:
+        - url: "https://repo1.maven.org/maven2"
+        - url: "http://uk.maven.org/maven2/"
 ---
-apiVersion: apps.openshift.io/v1
-kind: DeploymentConfig
+apiVersion: v1
+kind: Service
+metadata:
+  name: mavenrepo
+  namespace: pipelines-demo
+  labels:
+    chart: "bucketrepo-0.1.19"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: bucketrepo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mavenrepo
+  namespace: pipelines-demo
+  labels:
+    app: maven
+    app.kubernetes.io/component: web
+    app.kubernetes.io/instance: mavenrepo
+    app.kubernetes.io/name: mavenrepo
+    app.kubernetes.io/part-of: mavenrepo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bucketrepo
+  template:
+    metadata:
+      labels:
+        app: bucketrepo
+    spec:
+      containers:
+      - name: bucketrepo
+        image: "gcr.io/jenkinsxio/bucketrepo:0.1.19"
+        imagePullPolicy: IfNotPresent
+        command: ["/bucketrepo"]
+        args:
+        - "-config-path=/config"
+        - "-log-level=info"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        resources:
+            limits:
+              cpu: 100m
+              memory: 256Mi
+            requests:
+              cpu: 80m
+              memory: 128Mi
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: config
+        secret:
+          secretName: bucketrepo-config
+---
+# petclinic app
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   labels:
     app: spring-petclinic
@@ -33,29 +130,18 @@ metadata:
   namespace: pipelines-demo
 spec:
   replicas: 1
-  revisionHistoryLimit: 10
   selector:
-    app: spring-petclinic
-    deploymentconfig: spring-petclinic
-  strategy:
-    activeDeadlineSeconds: 21600
-    resources: {}
-    rollingParams:
-      intervalSeconds: 1
-      maxSurge: 25%
-      maxUnavailable: 25%
-      timeoutSeconds: 600
-      updatePeriodSeconds: 1
-    type: Rolling
+    matchLabels:
+      app: spring-petclinic
   template:
     metadata:
       labels:
         app: spring-petclinic
-        deploymentconfig: spring-petclinic
     spec:
       containers:
-      - image: spring-petclinic:latest
+      - name: spring-petclinic
         imagePullPolicy: Always
+        image: quay.io/siamaksade/spring-petclinic:latest
         livenessProbe:
           failureThreshold: 3
           httpGet:
@@ -66,7 +152,6 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
-        name: spring-petclinic
         ports:
         - containerPort: 8080
           protocol: TCP
@@ -84,24 +169,6 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 5
-        resources: {}
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
-      terminationGracePeriodSeconds: 30
-  test: false
-  triggers:
-  - imageChangeParams:
-      containerNames:
-      - spring-petclinic
-      from:
-        kind: ImageStreamTag
-        name: spring-petclinic:latest
-        namespace: pipelines-demo
-    type: ImageChange
 ---
 apiVersion: v1
 kind: Service
@@ -126,7 +193,6 @@ spec:
     targetPort: 8778
   selector:
     app: spring-petclinic
-    deploymentconfig: spring-petclinic
   sessionAffinity: None
   type: ClusterIP
 ---
@@ -144,6 +210,44 @@ spec:
     kind: Service
     name: spring-petclinic
     weight: 100
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: quay-push-secret
+  namespace: pipelines-demo
+data:
+  .dockerconfigjson: ewogICJhdXRocyI6IHsKICAgICJxdWF5LmlvIjogewogICAgICAiYXV0aCI6ICJjMmxoYldGcmMyRmtaU3QwWld0MGIyNDZORkZOU1V4SU9WZFdTRFZXV1RnMlRWSTNUazFGT1RBM1EwdEdVVXRPUlU1Uk1VUllTMUZSU0ZwWFdrdFlOelk1V2tNNFMwWklUMWN5UzBsVVR6UkdPUT09IiwKICAgICAgImVtYWlsIjogIiIKICAgIH0KICB9Cn0=
+type: kubernetes.io/dockerconfigjson
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pipeline
+  namespace: pipelines-demo
+imagePullSecrets:
+- name: quay-push-secret
+secrets:
+- name: quay-push-secret
+---
+# tasks
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mvn-settings
+  namespace: pipelines-demo
+data:
+  .settings.xml: |
+    <settings>
+      <mirrors>
+        <mirror>
+          <id>bucketrepo</id>
+          <name>bucketrepo- mirror</name>
+          <url>http://mavenrepo:8080/bucketrepo/</url>
+          <mirrorOf>*</mirrorOf>
+        </mirror>
+      </mirrors>
+    </settings>
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: Task
@@ -163,7 +267,30 @@ spec:
       targetPath: /
       type: git
   steps:
-  - name: test
+  - name: mvn-settings
+    image: maven:3.6.2-slim
+    workingdir: /.m2
+    command:
+      - '/bin/sh'
+      - '-c'
+    args:
+      - |-
+        cat > /.m2/settings.xml <<EOF
+        <settings>
+          <mirrors>
+            <mirror>
+              <id>bucketrepo</id>
+              <name>bucketrepo- mirror</name>
+              <url>http://mavenrepo:8080/bucketrepo/</url>
+              <mirrorOf>*</mirrorOf>
+            </mirror>
+          </mirrors>
+        </settings>
+        EOF
+    volumeMounts:
+      - name: m2-repository
+        mountPath: /.m2
+  - name: mvn-goals
     image: maven:3.6.2-slim
     command:
     - /usr/bin/mvn
@@ -179,127 +306,34 @@ spec:
 apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
-  name: openshift-client
+  name: oc-redeploy
   namespace: pipelines-demo
 spec:
   inputs:
     params:
-      - name: ARGS
-        description: The OpenShift CLI arguments to run
-        type: array
-        default:
-        - "help"
+      - name: DEPLOYMENT
+        type: string 
   steps:
-    - name: oc
+    - name: scale-down
       image: quay.io/openshift/origin-cli:latest
-      command: ["/usr/bin/oc"]
-      args:
-        - "$(inputs.params.ARGS)"
----
-apiVersion: tekton.dev/v1alpha1
-kind: Task
-metadata:
-  name: s2i-java-8
-  namespace: pipelines-demo
-spec:
-  inputs:
-    resources:
-      - name: source
-        type: git
-    params:
-      - name: PATH_CONTEXT
-        description: The location of the path to run s2i from
-        default: .
-        type: string
-      - name: TLSVERIFY
-        description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
-        default: "true"
-        type: string
-      - name: MAVEN_ARGS_APPEND
-        description: Additional Maven arguments
-        default: ""
-        type: string
-      - name: MAVEN_CLEAR_REPO
-        description: Remove the Maven repository after the artifact is built
-        default: "false"
-        type: string
-      - name: MAVEN_MIRROR_URL
-        description: The base URL of a mirror used for retrieving artifacts
-        default: ""
-        type: string
-  outputs:
-    resources:
-      - name: image
-        type: image
-  steps:
-    - name: gen-env-file
-      image: quay.io/openshift-pipeline/s2i
-      workingdir: /env-params
       command:
         - '/bin/sh'
         - '-c'
       args:
+      args:
         - |-
-          echo "MAVEN_CLEAR_REPO=$(inputs.params.MAVEN_CLEAR_REPO)" > env-file
-
-          [[ '$(inputs.params.MAVEN_ARGS_APPEND)' != "" ]] &&
-            echo "MAVEN_ARGS_APPEND=$(inputs.params.MAVEN_ARGS_APPEND)" >> env-file
-
-          [[ '$(inputs.params.MAVEN_MIRROR_URL)' != "" ]] &&
-            echo "MAVEN_MIRROR_URL=$(inputs.params.MAVEN_MIRROR_URL)" >> env-file
-
-          echo "Generated Env file"
-          echo "------------------------------"
-          cat env-file
-          echo "------------------------------"
-      volumeMounts:
-        - name: envparams
-          mountPath: /env-params
-    - name: generate
-      image: quay.io/openshift-pipeline/s2i
-      workingdir: /workspace/source
+          oc scale deployment/$(inputs.params.DEPLOYMENT) --replicas=0
+          oc rollout status deployment/$(inputs.params.DEPLOYMENT)
+    - name: scale-up
+      image: quay.io/openshift/origin-cli:latest
       command:
-        - 's2i'
-        - 'build'
-        - '$(inputs.params.PATH_CONTEXT)'
-        - 'registry.access.redhat.com/redhat-openjdk-18/openjdk18-openshift'
-        - '--image-scripts-url'
-        - 'image:///usr/local/s2i'
-        - '--as-dockerfile'
-        - '/gen-source/Dockerfile.gen'
-        - '--environment-file'
-        - '/env-params/env-file'
-      volumeMounts:
-        - name: gen-source
-          mountPath: /gen-source
-        - name: envparams
-          mountPath: /env-params
-    - name: build
-      image: quay.io/buildah/stable
-      workingdir: /gen-source
-      command: ['buildah', 'bud', '--tls-verify=$(inputs.params.TLSVERIFY)', '--layers', '-f', '/gen-source/Dockerfile.gen', '-t', '$(outputs.resources.image.url)', '.']
-      volumeMounts:
-        - name: varlibcontainers
-          mountPath: /var/lib/containers
-        - name: gen-source
-          mountPath: /gen-source
-      securityContext:
-        privileged: true
-    - name: push
-      image: quay.io/buildah/stable
-      command: ['buildah', 'push', '--tls-verify=$(inputs.params.TLSVERIFY)', '$(outputs.resources.image.url)', 'docker://$(outputs.resources.image.url)']
-      volumeMounts:
-        - name: varlibcontainers
-          mountPath: /var/lib/containers
-      securityContext:
-        privileged: true
-  volumes:
-    - name: varlibcontainers
-      emptyDir: {}
-    - name: gen-source
-      emptyDir: {}
-    - name: envparams
-      emptyDir: {}
+        - '/bin/sh'
+        - '-c'
+      args:
+      args:
+        - |-
+          oc scale deployment/$(inputs.params.DEPLOYMENT) --replicas=1
+          oc rollout status deployment/$(inputs.params.DEPLOYMENT)
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: PipelineResource
@@ -310,7 +344,7 @@ spec:
   type: image
   params:
   - name: url
-    value: image-registry.openshift-image-registry.svc:5000/pipelines-demo/spring-petclinic
+    value: quay.io/siamaksade/spring-petclinic
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: PipelineResource
@@ -335,7 +369,7 @@ spec:
   - name: app-image
     type: image
   tasks:
-  - name: unit-test
+  - name: unit-tests
     taskRef:
       name: mvn
     resources:
@@ -346,14 +380,17 @@ spec:
     - name: GOALS
       value: 
         - package
-  - name: build-s2i
+  - name: build-image
     taskRef:
       name: s2i-java-8
+      kind: ClusterTask
     runAfter:
-      - unit-test
+      - unit-tests
     params:
       - name: TLSVERIFY
         value: "false"
+      - name: MAVEN_MIRROR_URL
+        value: http://mavenrepo:8080/bucketrepo/
     resources:
       inputs:
       - name: source
@@ -361,11 +398,11 @@ spec:
       outputs:
       - name: image
         resource: app-image
-  - name: int-test
+  - name: slow-unit-tests
     taskRef:
       name: mvn
     runAfter:
-      - unit-test
+      - unit-tests
     resources:
       inputs:
       - name: source
@@ -376,13 +413,10 @@ spec:
         - verify
   - name: deploy
     taskRef:
-      name: openshift-client
+      name: oc-redeploy
     runAfter:
-      - build-s2i
-      - int-test
+      - build-image
+      - slow-unit-tests
     params:
-    - name: ARGS
-      value:
-        - rollout
-        - latest
-        - spring-petclinic
+    - name: DEPLOYMENT
+      value: spring-petclinic
