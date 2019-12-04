@@ -1,6 +1,6 @@
 # 
 # USAGE:
-#   oc new-project demo
+#   oc new-project pipelines-demo
 #   oc create -f http://bit.ly/pipelines-demo
 #   tkn pipeline start petclinic-deployment-pipeline
 #

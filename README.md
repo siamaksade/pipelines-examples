@@ -43,6 +43,7 @@ tkn pipeline start deploy-pipeline
 # PetClinic Pipeline Demo
 
 ```
+oc new-project pipelines-demo
 oc apply -f pipelines/petclinic-all.yml
 tkn pipeline start petclinic-deployment-pipeline -n pipelines-demo
 ```
