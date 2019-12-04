@@ -1,21 +1,16 @@
 # 
 # USAGE:
+#   oc new-project demo
 #   oc create -f http://bit.ly/pipelines-demo
-#   tkn pipeline start petclinic-s2i-pipeline -n pipelines-demo
+#   tkn pipeline start petclinic-deployment-pipeline
 #
 
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: pipelines-demo
 ---
 # bucketrepo maven repository
 apiVersion: v1
 kind: Secret
 metadata:
   name: bucketrepo-config
-  namespace: pipelines-demo
   annotations:
     config/checksum: 533347b915964ea57056e799479ab96181274ee7cde598452affee274449ad22
 type: Opaque
@@ -23,7 +18,7 @@ stringData:
   config.yaml: |
     http:
         addr: ":8080"
-    
+  
     storage:
         enabled: false
         bucket_url: "gs://bucketrepo"
@@ -39,7 +34,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mavenrepo
-  namespace: pipelines-demo
   labels:
     chart: "bucketrepo-0.1.19"
 spec:
@@ -56,7 +50,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mavenrepo
-  namespace: pipelines-demo
   labels:
     app: maven
     app.kubernetes.io/component: web
@@ -127,7 +120,6 @@ metadata:
     app.kubernetes.io/part-of: spring-petclinic
     app.openshift.io/runtime: java
   name: spring-petclinic
-  namespace: pipelines-demo
 spec:
   replicas: 1
   selector:
@@ -176,7 +168,6 @@ metadata:
   labels:
     app: spring-petclinic
   name: spring-petclinic
-  namespace: pipelines-demo
 spec:
   ports:
   - name: 8080-tcp
@@ -202,7 +193,6 @@ metadata:
   labels:
     app: spring-petclinic
   name: spring-petclinic
-  namespace: pipelines-demo
 spec:
   port:
     targetPort: 8080-tcp
@@ -215,7 +205,6 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: quay-push-secret
-  namespace: pipelines-demo
 data:
   .dockerconfigjson: ewogICJhdXRocyI6IHsKICAgICJxdWF5LmlvIjogewogICAgICAiYXV0aCI6ICJjMmxoYldGcmMyRmtaU3QwWld0MGIyNDZORkZOU1V4SU9WZFdTRFZXV1RnMlRWSTNUazFGT1RBM1EwdEdVVXRPUlU1Uk1VUllTMUZSU0ZwWFdrdFlOelk1V2tNNFMwWklUMWN5UzBsVVR6UkdPUT09IiwKICAgICAgImVtYWlsIjogIiIKICAgIH0KICB9Cn0=
 type: kubernetes.io/dockerconfigjson
@@ -224,7 +213,6 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: pipeline
-  namespace: pipelines-demo
 imagePullSecrets:
 - name: quay-push-secret
 secrets:
@@ -235,7 +223,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mvn-settings
-  namespace: pipelines-demo
 data:
   .settings.xml: |
     <settings>
@@ -253,7 +240,6 @@ apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   name: mvn
-  namespace: pipelines-demo
 spec:
   inputs:
     params:
@@ -307,7 +293,6 @@ apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   name: oc-redeploy
-  namespace: pipelines-demo
 spec:
   inputs:
     params:
@@ -339,7 +324,6 @@ apiVersion: tekton.dev/v1alpha1
 kind: PipelineResource
 metadata:
   name: petclinic-image
-  namespace: pipelines-demo
 spec:
   type: image
   params:
@@ -350,7 +334,6 @@ apiVersion: tekton.dev/v1alpha1
 kind: PipelineResource
 metadata:
   name: petclinic-git
-  namespace: pipelines-demo
 spec:
   type: git
   params:
@@ -360,8 +343,7 @@ spec:
 apiVersion: tekton.dev/v1alpha1
 kind: Pipeline
 metadata:
-  name: petclinic-s2i-pipeline
-  namespace: pipelines-demo
+  name: petclinic-deployment-pipeline
 spec:
   resources:
   - name: app-git
@@ -420,3 +402,76 @@ spec:
     params:
     - name: DEPLOYMENT
       value: spring-petclinic
+---
+# webhook
+apiVersion: tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: petclinic-deployment-trigger-template
+spec:
+  params:
+  - name: gitrevision
+    description: The git revision
+    default: master
+  - name: gitrepositoryurl
+    description: The git repository url
+  - name: message
+    description: The message to print
+    default: This is the default message
+  - name: contenttype
+    description: The Content-Type of the event
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1alpha1
+    kind: PipelineRun
+    metadata:
+      generateName: petclinic-deployment-pipeline-run-
+      labels:
+        tekton.dev/pipeline: petclinic-deployment-pipeline
+    spec:
+      pipelineRef:
+        name: petclinic-deployment-pipeline
+      resources:
+      - name: app-git
+        resourceRef:
+          name: petclinic-git
+      - name: app-image
+        resourceRef:
+          name: petclinic-image
+---
+apiVersion: tekton.dev/v1alpha1
+kind: TriggerBinding
+metadata:
+  name: github-trigger-binding
+spec:
+  params:
+  - name: gitrevision
+    value: $(body.head_commit.id)
+  - name: gitrepositoryurl
+    value: $(body.repository.url)
+  - name: contenttype
+    value: $(header.Content-Type)
+---
+apiVersion: tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: webhook-listener
+spec:
+  serviceAccountName: pipeline
+  triggers:
+    - name: petclinic-deployment-trigger
+      binding:
+        name: github-trigger-binding
+      template:
+        name: petclinic-deployment-trigger-template
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: webhook-listener
+spec:
+  port:
+    targetPort: 8080
+  to:
+    kind: "Service"
+    name: el-webhook-listener
+    weight: 100
