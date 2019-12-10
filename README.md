@@ -45,5 +45,8 @@ tkn pipeline start deploy-pipeline
 ```
 oc new-project pipelines-demo
 oc apply -f pipelines/petclinic-all.yml
-tkn pipeline start petclinic-deployment-pipeline -n pipelines-demo
+tkn pipeline start petclinic-deployment-pipeline
+
+$ oc get route el-webhook
+# Fork spring-petclinic GitHub repository and add a json webhook
 ```
