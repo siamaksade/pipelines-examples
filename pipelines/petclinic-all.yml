@@ -305,7 +305,6 @@ spec:
         - '/bin/sh'
         - '-c'
       args:
-      args:
         - |-
           oc scale deployment/$(inputs.params.DEPLOYMENT) --replicas=0
           oc rollout status deployment/$(inputs.params.DEPLOYMENT)
@@ -314,7 +313,6 @@ spec:
       command:
         - '/bin/sh'
         - '-c'
-      args:
       args:
         - |-
           oc scale deployment/$(inputs.params.DEPLOYMENT) --replicas=1
