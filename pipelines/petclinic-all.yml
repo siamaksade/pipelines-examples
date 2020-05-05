@@ -236,19 +236,19 @@ data:
       </mirrors>
     </settings>
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: mvn
 spec:
-  inputs:
-    params:
-      - name: GOALS
-        description: The Maven goals to run
-        type: array
-        default:
-        - "package"
-    resources:
+  params:
+    - name: GOALS
+      description: The Maven goals to run
+      type: array
+      default:
+      - "package"
+  resources:
+    inputs:
     - name: source
       targetPath: /
       type: git
@@ -289,15 +289,14 @@ spec:
     - name: m2-repository
       emptyDir: {}
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: oc-redeploy
 spec:
-  inputs:
-    params:
-      - name: DEPLOYMENT
-        type: string 
+  params:
+    - name: DEPLOYMENT
+      type: string 
   steps:
     - name: scale-down
       image: quay.io/openshift/origin-cli:latest
@@ -338,7 +337,7 @@ spec:
   - name: url
     value: https://github.com/spring-projects/spring-petclinic
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: petclinic-deployment-pipeline
@@ -402,7 +401,7 @@ spec:
       value: spring-petclinic
 ---
 # webhook
-apiVersion: tekton.dev/v1alpha1
+apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerTemplate
 metadata:
   name: petclinic-deployment-triggertemplate
@@ -425,7 +424,7 @@ spec:
           value: $(params.gitrevision)
         - name: url
           value: $(params.gitrepositoryurl)
-    - apiVersion: tekton.dev/v1alpha1
+    - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
       metadata:
         name: petclinic-deployment-pipeline-run-$(uid)
@@ -440,7 +439,7 @@ spec:
             resourceRef:
               name: petclinic-image
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerBinding
 metadata:
   name: github-triggerbinding
@@ -451,15 +450,15 @@ spec:
     - name: gitrepositoryurl
       value: $(body.repository.url)
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: triggers.tekton.dev/v1alpha1
 kind: EventListener
 metadata:
   name: webhook
 spec:
   serviceAccountName: pipeline
   triggers:
-    - binding:
-        name: github-triggerbinding
+    - bindings:
+      - name: github-triggerbinding
       template:
         name: petclinic-deployment-triggertemplate
 ---
