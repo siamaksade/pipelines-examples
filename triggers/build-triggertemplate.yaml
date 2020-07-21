@@ -1,0 +1,37 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: petclinic-deployment-triggertemplate
+spec:
+  params:
+    - name: gitrevision
+      description: The git revision
+      default: master
+    - name: gitrepositoryurl
+      description: The git repository url
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1alpha1
+      kind: PipelineResource
+      metadata:
+        name: petclinic-git-$(uid)
+      spec:
+        type: git
+        params:
+        - name: revision
+          value: $(params.gitrevision)
+        - name: url
+          value: $(params.gitrepositoryurl)
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        name: petclinic-deployment-pipeline-run-$(uid)
+      spec:
+        pipelineRef:
+          name: petclinic-deployment-pipeline
+        resources:
+          - name: app-git
+            resourceRef:
+              name: petclinic-git-$(uid)
+          - name: app-image
+            resourceRef:
+              name: petclinic-image

@@ -1,0 +1,93 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: petclinic-deploy
+spec:
+  workspaces:
+  - name: maven-cache
+  - name: maven-settings
+  - name: app-source
+  params:
+  - name: APP_NAME
+    type: string
+    default: spring-petclinic
+    description: The application deployment name
+  - name: APP_GIT_URL
+    type: string
+    default: https://github.com/siamaksade/spring-petclinic/
+    description: The application git repository url
+  - name: APP_GIT_REVISION
+    type: string
+    default: master
+    description: The application git repository revision
+  - name: APP_IMAGE
+    type: string
+    default: quay.io/siamaksade/spring-petclinic:latest
+    description: The application image url in registry
+  tasks:
+  - name: git-clone
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    params:
+    - name: url
+      value: $(params.APP_GIT_URL)
+    - name: revision
+      value: $(params.APP_GIT_REVISION)
+    - name: deleteExisting
+      value: "true"
+    workspaces:
+    - name: output
+      workspace: app-source
+  - name: unit-tests
+    taskRef:
+      name: maven
+    params:
+    - name: GOALS
+      value: ["package"]
+    runAfter: 
+      - git-clone
+    workspaces:
+    - name: maven-cache
+      workspace: maven-cache
+    - name: maven-settings
+      workspace: maven-settings
+    - name: source
+      workspace: app-source
+  - name: build-image
+    taskRef:
+      name: s2i-java-11-binary
+    runAfter:
+      - unit-tests
+    params:
+      - name: TLSVERIFY
+        value: "false"
+      - name: OUTPUT_IMAGE
+        value: $(params.APP_IMAGE)
+    workspaces:
+    - name: source
+      workspace: app-source
+  - name: slow-unit-tests
+    taskRef:
+      name: maven
+    runAfter:
+      - unit-tests
+    params:
+    - name: GOALS
+      value: ["verify"]
+    workspaces:
+    - name: maven-cache
+      workspace: maven-cache
+    - name: maven-settings
+      workspace: maven-settings
+    - name: source
+      workspace: app-source
+  - name: deploy
+    taskRef:
+      name: redeploy
+    runAfter:
+      - build-image
+      - slow-unit-tests
+    params:
+    - name: DEPLOYMENT
+      value: $(params.APP_NAME)

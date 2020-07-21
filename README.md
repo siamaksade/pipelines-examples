@@ -8,10 +8,7 @@
 # PetClinic Pipeline Demo
 
 ```
-oc new-project pipelines-demo
-oc apply -f pipelines/petclinic-all.yml
-tkn pipeline start petclinic-deployment-pipeline
-
-$ oc get route el-webhook
-# Fork spring-petclinic GitHub repository and add a json webhook
+$ git clone [this-repo]
+$ oc new-project demo
+$ ./install.sh
 ```
