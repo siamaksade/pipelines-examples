@@ -1,17 +1,14 @@
-# Tekton Pipeline Examples
+# Tekton Pipelines PetClinic Demo
 
+![Pipeline Diagram](images/pipeline.png)
 
-## Pre-requisites
-* [OpenShift 4 cluster](http://cloud.redhat.com)
-* [Tekton CLI](https://github.com/tektoncd/cli/releases/latest)
-
-# PetClinic Pipeline Demo
-
+Install demo:
 ```
-oc new-project pipelines-demo
-oc apply -f pipelines/petclinic-all.yml
-tkn pipeline start petclinic-deployment-pipeline
+$ oc new-project demo
+$ oc create -f petclinic-pipeline-all.yaml
+```
 
-$ oc get route el-webhook
-# Fork spring-petclinic GitHub repository and add a json webhook
+Start pipeline
+```
+$ tkn p start petclinic-deploy --use-param-defaults -w name=maven-cache,claimName=maven-cache-pvc -w name=app-source,claimName=app-source-pvc -w name=maven-settings,config=maven-settings
 ```

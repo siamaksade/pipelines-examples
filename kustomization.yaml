@@ -1,0 +1,8 @@
+resources:
+- apps/spring-petclinic.yaml
+- conf/maven-configmap.yaml
+- conf/pvc.yaml
+- tasks/maven.yaml
+- tasks/redeploy.yaml
+- tasks/s2i-java-11-binary.yaml
+- pipelines/petclinic-pipeline.yaml

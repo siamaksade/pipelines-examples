@@ -1,0 +1,77 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: petclinic-deploy
+spec:
+  workspaces:
+  - name: maven-cache
+  - name: maven-settings
+  - name: app-source
+  params:
+  - name: APP_NAME
+    type: string
+    default: spring-petclinic
+    description: The application deployment name
+  - name: APP_GIT_URL
+    type: string
+    default: https://github.com/siamaksade/spring-petclinic/
+    description: The application git repository url
+  - name: APP_GIT_REVISION
+    type: string
+    default: master
+    description: The application git repository revision
+  - name: APP_IMAGE_STREAM
+    type: string
+    default: spring-petclinic:latest
+    description: The application image stream
+  tasks:
+  - name: git-clone
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    params:
+    - name: url
+      value: $(params.APP_GIT_URL)
+    - name: revision
+      value: $(params.APP_GIT_REVISION)
+    - name: deleteExisting
+      value: "true"
+    workspaces:
+    - name: output
+      workspace: app-source
+  - name: build-jar
+    taskRef:
+      name: maven
+    params:
+    - name: GOALS
+      value: ["package", "-DskipTests"]
+    runAfter: 
+      - git-clone
+    workspaces:
+    - name: maven-cache
+      workspace: maven-cache
+    - name: maven-settings
+      workspace: maven-settings
+    - name: source
+      workspace: app-source
+  - name: build-image
+    taskRef:
+      name: s2i-java-11-binary
+    runAfter:
+      - build-jar
+    params:
+      - name: TLSVERIFY
+        value: "false"
+      - name: OUTPUT_IMAGE_STREAM
+        value: $(params.APP_IMAGE_STREAM)
+    workspaces:
+    - name: source
+      workspace: app-source
+  - name: deploy
+    taskRef:
+      name: redeploy
+    runAfter:
+      - build-image
+    params:
+    - name: DEPLOYMENT
+      value: $(params.APP_NAME)
