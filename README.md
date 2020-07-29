@@ -1,5 +1,7 @@
 # Tekton Pipelines PetClinic Demo
 
+![Pipeline Diagram](images/pipeline.png)
+
 Install demo:
 ```
 $ oc new-project demo
