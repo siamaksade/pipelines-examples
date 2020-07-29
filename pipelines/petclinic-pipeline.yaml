@@ -20,10 +20,10 @@ spec:
     type: string
     default: master
     description: The application git repository revision
-  - name: APP_IMAGE
+  - name: APP_IMAGE_STREAM
     type: string
-    default: quay.io/siamaksade/spring-petclinic:latest
-    description: The application image url in registry
+    default: spring-petclinic:latest
+    description: The application image stream
   tasks:
   - name: git-clone
     taskRef:
@@ -39,12 +39,12 @@ spec:
     workspaces:
     - name: output
       workspace: app-source
-  - name: unit-tests
+  - name: build-jar
     taskRef:
       name: maven
     params:
     - name: GOALS
-      value: ["package"]
+      value: ["package", "-DskipTests"]
     runAfter: 
       - git-clone
     workspaces:
@@ -58,28 +58,13 @@ spec:
     taskRef:
       name: s2i-java-11-binary
     runAfter:
-      - unit-tests
+      - build-jar
     params:
       - name: TLSVERIFY
         value: "false"
-      - name: OUTPUT_IMAGE
-        value: $(params.APP_IMAGE)
+      - name: OUTPUT_IMAGE_STREAM
+        value: $(params.APP_IMAGE_STREAM)
     workspaces:
-    - name: source
-      workspace: app-source
-  - name: slow-unit-tests
-    taskRef:
-      name: maven
-    runAfter:
-      - unit-tests
-    params:
-    - name: GOALS
-      value: ["verify"]
-    workspaces:
-    - name: maven-cache
-      workspace: maven-cache
-    - name: maven-settings
-      workspace: maven-settings
     - name: source
       workspace: app-source
   - name: deploy
@@ -87,7 +72,6 @@ spec:
       name: redeploy
     runAfter:
       - build-image
-      - slow-unit-tests
     params:
     - name: DEPLOYMENT
       value: $(params.APP_NAME)

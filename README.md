@@ -1,14 +1,12 @@
-# Tekton Pipeline Examples
+# Tekton Pipelines PetClinic Demo
 
-
-## Pre-requisites
-* [OpenShift 4 cluster](http://cloud.redhat.com)
-* [Tekton CLI](https://github.com/tektoncd/cli/releases/latest)
-
-# PetClinic Pipeline Demo
-
+Install demo:
 ```
-$ git clone [this-repo]
 $ oc new-project demo
-$ ./install.sh
+$ oc create -f petclinic-pipeline-all.yaml
+```
+
+Start pipeline
+```
+$ tkn p start petclinic-deploy --use-param-defaults -w name=maven-cache,claimName=maven-cache-pvc -w name=app-source,claimName=app-source-pvc -w name=maven-settings,config=maven-settings
 ```
