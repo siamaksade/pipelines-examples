@@ -1,0 +1,31 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: snyk-maven
+spec:
+  workspaces:
+    - name: source
+  params:
+  - name: command
+    default: monitor
+  - name: args
+    type: array
+    default: []
+  - name: snyk-secret
+    type: string
+    description: name of the secret holding the Snyk API token
+    default: snyk
+  steps:
+  - name: snyk
+    workingDir: $(workspaces.source.path)
+    image: "snyk/snyk:maven"
+    command: ["/usr/local/bin/snyk"]
+    args:
+      - $(inputs.params.command)
+      - $(inputs.params.args)
+    env:
+    - name: SNYK_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: $(inputs.params.snyk-secret)
+          key: token

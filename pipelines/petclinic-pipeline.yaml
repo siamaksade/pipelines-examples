@@ -39,7 +39,7 @@ spec:
     workspaces:
     - name: output
       workspace: app-source
-  - name: build-jar
+  - name: unit-tests
     taskRef:
       name: maven
     params:
@@ -54,11 +54,25 @@ spec:
       workspace: maven-settings
     - name: source
       workspace: app-source
+  - name: security-scan
+    taskRef:
+      name: snyk-maven
+    runAfter: 
+      - git-clone
+    params:
+      - name: command
+        value: monitor # change to 'test' to fail on vulnerabilities
+      - name: args
+        value:
+        - -d
+    workspaces:
+    - name: source
+      workspace: app-source
   - name: build-image
     taskRef:
       name: s2i-java-11-binary
     runAfter:
-      - build-jar
+      - unit-tests
     params:
       - name: TLSVERIFY
         value: "false"
@@ -72,6 +86,7 @@ spec:
       name: redeploy
     runAfter:
       - build-image
+      - security-scan
     params:
     - name: DEPLOYMENT
       value: $(params.APP_NAME)
