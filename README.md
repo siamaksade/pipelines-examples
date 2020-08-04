@@ -1,14 +1,8 @@
-# Tekton Pipelines PetClinic Demo
+# Tekton Pipelines Examples on OpenShift
 
-![Pipeline Diagram](images/pipeline.png)
+* [pipeline-buildpacks](pipeline-buildpacks): build and deploy pipeline for a [Cloud Foundry sample Node.js app](https://github.com/cloudfoundry-samples/cf-sample-app-nodejs) using Cloud-Native Buildpacks for building images
 
-Install demo:
-```
-$ oc new-project demo
-$ oc create -f petclinic-pipeline-all.yaml
-```
+* [pipeline-s2i](pipeline-s2i): build and deploy pipeline for a [Spring Boot sample application](https://github.com/spring-projects/spring-petclinic) using S2I for building images
 
-Start pipeline
-```
-$ tkn p start petclinic-deploy --use-param-defaults -w name=maven-cache,claimName=maven-cache-pvc -w name=app-source,claimName=app-source-pvc -w name=maven-settings,config=maven-settings
-```
+
+* [tasks](tasks): a collection of Tekton Tasks

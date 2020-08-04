@@ -1,0 +1,28 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: smoke-test
+spec:
+  params:
+    - name: SERVICE_NAME
+      description: Name of the Kubernetes service to be tested
+      type: string
+    - name: SERVICE_PORT
+      description: Port of the Kubernetes service to be tested
+      type: string
+      default: "8080"
+    - name: NAMESPACE
+      description: The service namespace
+      type: string
+    - name: MATCH_PHRASE
+      description: The phrase to match with the service response 
+      type: string
+  steps:
+    - name: test
+      image: 'image-registry.openshift-image-registry.svc:5000/openshift/cli:latest'
+      script: |
+        #!/usr/bin/env bash
+        
+        echo "Smoke-testing http://$(params.SERVICE_NAME).$(params.NAMESPACE).svc:$(params.SERVICE_PORT) for '$(params.MATCH_PHRASE)' in reponse"
+        curl -sL http://$(params.SERVICE_NAME).$(params.NAMESPACE).svc:$(params.SERVICE_PORT) | grep "$(params.MATCH_PHRASE)"
+

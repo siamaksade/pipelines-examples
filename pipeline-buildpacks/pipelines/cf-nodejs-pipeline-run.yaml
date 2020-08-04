@@ -1,0 +1,14 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: cf-nodejs-pipeline-run-
+spec:
+  pipelineRef:
+    name: cf-nodejs-pipeline
+  params:
+  - name: APP_IMAGE
+    value: quay.io/siamaksade/cf-app-nodejs:latest
+  workspaces:
+  - name: app-source
+    persistentVolumeClaim:
+      claimName: app-source-pvc

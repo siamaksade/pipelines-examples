@@ -1,0 +1,62 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: cf-nodejs-pipeline
+spec:
+  workspaces:
+  - name: app-source
+  params:
+  - name: APP_NAME
+    type: string
+    default: cf-app-nodejs
+    description: The application deployment name
+  - name: APP_GIT_URL
+    type: string
+    default: https://github.com/cloudfoundry-samples/cf-sample-app-nodejs
+    description: The application git repository url
+  - name: APP_IMAGE
+    type: string
+    default: quay.io/siamaksade/cf-app-nodejs:latest
+    description: The application image in remote registry
+
+  tasks:
+  - name: git-clone
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    params:
+    - name: url
+      value: $(params.APP_GIT_URL)
+    - name: deleteExisting
+      value: "true"
+    workspaces:
+    - name: output
+      workspace: app-source
+
+  - name: buildpacks
+    taskRef:
+      name: buildpacks
+    params:
+    - name: BUILDER_IMAGE
+      value: gcr.io/paketo-buildpacks/builder:base
+      # value: docker.io/cloudfoundry/cnb:bionicoc
+      # value: gcr.io/buildpacks/builder:v1
+      # value: heroku/buildpacks:18
+    - name: OUTPUT_IMAGE
+      value: $(params.APP_IMAGE)
+    runAfter: 
+      - git-clone
+    workspaces:
+    - name: source
+      workspace: app-source
+
+  - name: deploy
+    taskRef:
+      name: oc-deploy
+    runAfter:
+      - buildpacks
+    params:
+    - name: DEPLOYMENT_NAME
+      value: $(params.APP_NAME)
+    - name: IMAGE_URL
+      value: $(params.APP_IMAGE)

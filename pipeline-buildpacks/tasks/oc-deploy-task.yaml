@@ -1,0 +1,39 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: oc-deploy
+spec:
+  params:
+  - name: DEPLOYMENT_NAME
+    type: string 
+  - name: IMAGE_URL
+    type: string 
+
+  stepTemplate:
+    volumeMounts:
+    - name: work
+      mountPath: /work
+
+  steps:
+    - name: extract-digest
+      image: quay.io/siamaksade/skopeo:latest
+      script: |
+        #!/usr/bin/env bash
+        skopeo inspect docker://$(params.IMAGE_URL) > /work/digest.json
+        cat /work/digest.json | jq '.Name' | tr -d '"' > /work/image-name 
+        cat /work/digest.json | jq '.Digest' | tr -d '"' > /work/image-digest
+    - name: deploy
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      script: |
+        #!/usr/bin/env bash
+
+        image_ref="`cat /work/image-name`@`cat /work/image-digest`"
+
+        echo "Deploying $image_ref"
+
+        oc set image deployment/$(inputs.params.DEPLOYMENT_NAME) $(inputs.params.DEPLOYMENT_NAME)=$image_ref
+        oc patch deployment $(inputs.params.DEPLOYMENT_NAME) -p "{\"spec\": {\"template\": {\"metadata\": { \"labels\": {  \"redeploy\": \"$(date +%s)\"}}}}}"
+        oc rollout status deployment/$(inputs.params.DEPLOYMENT_NAME)
+  volumes:
+    - name: work
+      emptyDir: {}
