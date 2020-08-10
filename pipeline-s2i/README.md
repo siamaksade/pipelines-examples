@@ -5,6 +5,7 @@
 Install demo:
 ```
 $ oc new-project demo
+$ oc apply -f fix
 $ oc create -f pipeline-s2i/petclinic-pipeline-all.yaml
 ```
 

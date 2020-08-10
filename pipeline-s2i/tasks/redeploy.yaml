@@ -6,22 +6,23 @@ spec:
   params:
     - name: DEPLOYMENT
       type: string 
+    - name: IMAGE_STREAM
+      type: string 
   steps:
-    - name: scale-down
+    - name: deploy
       image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
-      command:
-        - '/bin/sh'
-        - '-c'
-      args:
-        - |-
-          oc scale deployment/$(params.DEPLOYMENT) --replicas=0
-          oc rollout status deployment/$(params.DEPLOYMENT)
-    - name: scale-up
-      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
-      command:
-        - '/bin/sh'
-        - '-c'
-      args:
-        - |-
-          oc scale deployment/$(params.DEPLOYMENT) --replicas=1
-          oc rollout status deployment/$(params.DEPLOYMENT)
+      script: |
+        #!/usr/bin/env bash
+
+        image_ref="image-registry.openshift-image-registry.svc:5000/$POD_NAMESPACE/$(params.IMAGE_STREAM)"
+
+        echo "Deploying $image_ref"
+
+        oc set image deployment/$(params.DEPLOYMENT) $(params.DEPLOYMENT)=$image_ref
+        oc patch deployment $(params.DEPLOYMENT) -p "{\"spec\": {\"template\": {\"metadata\": { \"labels\": {  \"redeploy\": \"$(date +%s)\"}}}}}"
+        oc rollout status deployment/$(params.DEPLOYMENT)
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace

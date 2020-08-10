@@ -6,3 +6,5 @@ resources:
 - tasks/redeploy.yaml
 - tasks/s2i-java-11-binary.yaml
 - pipelines/petclinic-pipeline.yaml
+- triggers/triggertemplate.yaml
+- triggers/eventlistener.yaml

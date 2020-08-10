@@ -75,3 +75,5 @@ spec:
     params:
     - name: DEPLOYMENT
       value: $(params.APP_NAME)
+    - name: IMAGE_STREAM
+      value: $(params.APP_IMAGE_STREAM)

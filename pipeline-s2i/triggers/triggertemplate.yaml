@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerTemplate
 metadata:
-  name: trigger-template-petclinic
+  name: trigger-template-petclinic-deploy
 spec:
   params:
     - name: git-revision
@@ -27,7 +27,7 @@ spec:
           - name: APP_GIT_REVISION
             value: $(params.git-revision)
           - name: APP_IMAGE_STREAM
-            value: 'spring-petclinic:latest'
+            value: 'spring-petclinic:$(params.git-revision)'
         pipelineRef:
           name: petclinic-deploy
         workspaces:
