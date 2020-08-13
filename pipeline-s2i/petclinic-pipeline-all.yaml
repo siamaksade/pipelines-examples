@@ -601,7 +601,7 @@ spec:
   triggers:
   - bindings:
     - kind: ClusterTriggerBinding
-      name: github-push
+      ref: github-push
     template:
       name: trigger-template-petclinic-deploy
 ---

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-oc apply -f fix/
+# oc apply -f fix/
 oc create -f apps/
 oc create -f conf/
 oc create -f tasks/

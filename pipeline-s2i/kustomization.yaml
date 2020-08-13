@@ -8,3 +8,4 @@ resources:
 - pipelines/petclinic-pipeline.yaml
 - triggers/triggertemplate.yaml
 - triggers/eventlistener.yaml
+- triggers/eventlistener-route.yaml
