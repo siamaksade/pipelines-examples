@@ -1,0 +1,41 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: trigger-template-petclinic-deploy
+spec:
+  params:
+    - name: git-revision
+    - name: git-commit-message
+    - name: git-repo-url
+    - name: git-repo-name
+    - name: content-type
+    - name: pusher-name
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        labels:
+          tekton.dev/pipeline: petclinic-deploy
+        name: petclinic-deploy-$(uid)
+      spec:
+        params:
+          - name: APP_NAME
+            value: spring-petclinic
+          - name: APP_GIT_URL
+            value: $(params.git-repo-url)
+          - name: APP_GIT_REVISION
+            value: $(params.git-revision)
+          - name: APP_IMAGE_TAG
+            value: $(params.git-revision)
+        pipelineRef:
+          name: petclinic-deploy-dev
+        workspaces:
+        - name: app-source
+          persistentVolumeClaim:
+            claimName: app-source-pvc
+        - name: maven-settings
+          configMap:
+            name: maven-settings
+        - name: maven-cache
+          persistentVolumeClaim:
+            claimName: spring-petclinic-maven-cache-pvc

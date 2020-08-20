@@ -1,0 +1,115 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: petclinic-deploy-dev
+spec:
+  workspaces:
+  - name: maven-cache
+  - name: app-source
+  params:
+  - name: APP_NAME
+    type: string
+    default: spring-petclinic
+    description: The application deployment name
+  - name: APP_GIT_URL
+    type: string
+    default: https://github.com/siamaksade/spring-petclinic/
+    description: The application git repository url
+  - name: APP_GIT_REVISION
+    type: string
+    default: master
+    description: The application git repository revision
+  - name: APP_IMAGE_NAME
+    type: string
+    default: quay.io/siamaksade/spring-petclinic
+    description: The application image name
+  - name: APP_IMAGE_TAG
+    type: string
+    default: latest
+    description: The application image tag
+  tasks:
+  - name: git-clone
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    params:
+    - name: url
+      value: $(params.APP_GIT_URL)
+    - name: revision
+      value: $(params.APP_GIT_REVISION)
+    - name: deleteExisting
+      value: "true"
+    workspaces:
+    - name: output
+      workspace: app-source
+  - name: build-jar
+    taskRef:
+      name: maven
+    params:
+    - name: GOALS
+      value: ["package", "-DskipTests"]
+    runAfter: 
+      - git-clone
+    workspaces:
+    - name: maven-cache
+      workspace: maven-cache
+    - name: source
+      workspace: app-source
+  - name: build-image
+    taskRef:
+      name: s2i-java-11-binary
+    runAfter:
+      - build-jar
+    params:
+      - name: TLSVERIFY
+        value: "false"
+      - name: OUTPUT_IMAGE
+        value: $(params.APP_IMAGE_NAME):$(params.APP_IMAGE_TAG)
+    workspaces:
+    - name: source
+      workspace: app-source
+  - name: deploy
+    taskRef:
+      name: redeploy
+    runAfter:
+      - build-image
+    params:
+    - name: DEPLOYMENT
+      value: $(params.APP_NAME)
+    - name: IMAGE_URL
+      value: $(params.APP_IMAGE_NAME):$(params.APP_IMAGE_TAG)
+  - name: int-tests
+    taskRef:
+      name: int-test
+    runAfter:
+      - deploy
+  - name: perf-tests
+    taskRef:
+      name: int-test
+    runAfter:
+      - deploy
+  - name: create-pr
+    taskRef:
+      name: image-updater
+    runAfter:
+      - int-tests
+      - perf-tests
+    params:
+      - name: driver
+        value: "github"
+      - name: file-path
+        value: "deployment.yaml"
+      - name: image-repo
+        value: $(params.APP_IMAGE_NAME)
+      - name: new-image-url
+        value: $(params.APP_IMAGE_NAME):$(params.APP_IMAGE_TAG)
+      - name: source-branch
+        value: "stage"
+      - name: source-repo
+        value: siamaksade/spring-petclinic-config
+      - name: update-key
+        value: "spec.template.spec.containers.0.image"
+      - name: insecure
+        value: "true"
+      - name: branch-generate-name
+        value: "ci-"

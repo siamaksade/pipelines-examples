@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: maven
+  labels:
+    operator.tekton.dev/provider-type: community
+spec:
+  params:
+    - default:
+        - package
+      description: maven goals to run
+      name: GOALS
+      type: array
+  steps:
+    - name: mvn-goals
+      args:
+        - -Dmaven.repo.local=$(workspaces.maven-cache.path)
+        - $(params.GOALS)
+      command:
+        - /usr/bin/mvn
+      image: gcr.io/cloud-builders/mvn
+      resources: {}
+      workingDir: $(workspaces.source.path)
+  workspaces:
+    - name: source
+    - name: maven-cache

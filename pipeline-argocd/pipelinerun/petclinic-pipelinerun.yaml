@@ -1,0 +1,24 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: petclinic-deploy-run-
+spec:
+  pipelineRef:
+    name: petclinic-deploy-dev
+  workspaces:
+  - name: app-source
+    persistentVolumeClaim:
+      claimName: app-source-pvc
+    # volumeClaimTemplate:
+    #   spec:
+    #     accessModes:
+    #       - ReadWriteOnce 
+    #     resources:
+    #       requests:
+    #         storage: 1Gi
+  - name: maven-settings
+    configMap:
+      name: maven-settings
+  - name: maven-cache
+    persistentVolumeClaim:
+      claimName: spring-petclinic-maven-cache-pvc

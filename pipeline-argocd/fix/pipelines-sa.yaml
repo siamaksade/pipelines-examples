@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pipeline
+imagePullSecrets:
+- name: quay-push-secret
+secrets:
+- name: quay-push-secret

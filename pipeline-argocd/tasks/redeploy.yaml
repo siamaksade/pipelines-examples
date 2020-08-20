@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: redeploy
+spec:
+  params:
+    - name: DEPLOYMENT
+      type: string 
+    - name: IMAGE_URL
+      type: string 
+  steps:
+    - name: deploy
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      script: |
+        #!/usr/bin/env bash
+
+        echo "Deploying $(params.IMAGE_URL)"
+
+        oc set image deployment/$(params.DEPLOYMENT) $(params.DEPLOYMENT)=$(params.IMAGE_URL)
+        oc patch deployment $(params.DEPLOYMENT) -p "{\"spec\": {\"template\": {\"metadata\": { \"labels\": {  \"redeploy\": \"$(date +%s)\"}}}}}"
+        oc rollout status deployment/$(params.DEPLOYMENT)
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
