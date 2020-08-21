@@ -3,5 +3,6 @@
 # Instructions
 
 * Install OpenShift Pipelines Operator
-* Install Argo CD Operator
-* Run `install.sh`
+* Install Argo CD Operator in the `argocd` namespace
+* Install Argo CD in the `argocd` namespace
+* Run `install-demo.sh`
